@@ -1,0 +1,783 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #---------------------------------------------------------------------------------
+> # Step 1. Extract SA data for Training pMHCpan
+> # Note: For SA HLA-I EL peptide data from NetMHCpan-4.1
+> #   Steps: 
+> #       1. Check data from NetMHCpan-4.1 (NetMHCpan_train)
+> #       2. Extract EL data that are associated with a single HLA allele
+> #---------------------------------------------------------------------------------
+> 
+> library(data.table)
+> library(stringr)
+> 
+> dir0 = "../../data/NetMHCpan4_1_train/"
+> 
+> #---------------------------------------------------------------------------------
+> # Check that SA EL training data is the same as in NetMHCpan-4.1
+> # # HLA = 142
+> # # binders = 218,962
+> # # nonbinders = 3,813,877
+> # Note: for NetMHCpan-4.1 data, the validation set is not provided. 
+> #---------------------------------------------------------------------------------
+> # import 5 splits of training data 
+> 
+> c0 = fread(paste0(dir0, "c000_el"))
+> c1 = fread(paste0(dir0, "c001_el"))
+> c2 = fread(paste0(dir0, "c002_el"))
+> c3 = fread(paste0(dir0, "c003_el"))
+> c4 = fread(paste0(dir0, "c004_el"))
+> 
+> dim(c0)
+[1] 2574792       3
+> c0[1:2,]
+           V1 V2         V3
+1:   LKFLPSRL  1    A20-A20
+2: YFPLAPFNQL  1 HLA-C14:02
+> 
+> # Combine all splits of data 
+> dat0 = rbind(c0, c1)
+> dat0 = rbind(dat0, c2)
+> dat0 = rbind(dat0, c3)
+> dat0 = rbind(dat0, c4)
+> dim(dat0)
+[1] 12868293        3
+> 
+> head(dat0)
+            V1 V2         V3
+1:    LKFLPSRL  1    A20-A20
+2:  YFPLAPFNQL  1 HLA-C14:02
+3:   KESKINQVF  1 HLA-B44:02
+4:   VPNAGRGLV  1      Bcell
+5:  RLWQNALLEK  1    LNT-229
+6: QFGISTPGSDL  1     H-2-Dq
+> colnames(dat0) = c("peptide", "binder", "HLA")
+> 
+> table(dat0$binder)
+
+       0        1 
+12204526   663767 
+> sort(unique(dat0$HLA))
+  [1] "A10"          "A11-A11"      "A12-A15"      "A14"          "A15-A15"     
+  [6] "A18"          "A19-A19"      "A20-A20"      "Apher1"       "Apher6"      
+ [11] "Bcell"        "CA46"         "CD165"        "CM467"        "DLA-8803401" 
+ [16] "DLA-8850101"  "DLA-8850801"  "EBL"          "Fibroblast"   "GD149"       
+ [21] "H-2-Db"       "H-2-Dd"       "H-2-Dq"       "H-2-Kb"       "H-2-Kd"      
+ [26] "H-2-Kk"       "H-2-Kq"       "H-2-Ld"       "HCC1143"      "HCC1937"     
+ [31] "HCT116"       "HEK293"       "HL-60"        "HLA-A01:01"   "HLA-A01:03"  
+ [36] "HLA-A02:01"   "HLA-A02:03"   "HLA-A02:04"   "HLA-A02:05"   "HLA-A02:06"  
+ [41] "HLA-A02:07"   "HLA-A02:14"   "HLA-A03:01"   "HLA-A03:02"   "HLA-A11:01"  
+ [46] "HLA-A23:01"   "HLA-A24:02"   "HLA-A24:06"   "HLA-A24:13"   "HLA-A25:01"  
+ [51] "HLA-A26:01"   "HLA-A26:02"   "HLA-A26:03"   "HLA-A29:02"   "HLA-A30:01"  
+ [56] "HLA-A30:02"   "HLA-A30:03"   "HLA-A30:04"   "HLA-A31:01"   "HLA-A32:01"  
+ [61] "HLA-A66:01"   "HLA-A66:02"   "HLA-A68:01"   "HLA-A68:02"   "HLA-A69:01"  
+ [66] "HLA-B07:02"   "HLA-B08:01"   "HLA-B13:01"   "HLA-B13:02"   "HLA-B14:02"  
+ [71] "HLA-B14:03"   "HLA-B15:01"   "HLA-B15:02"   "HLA-B15:03"   "HLA-B15:08"  
+ [76] "HLA-B15:09"   "HLA-B15:10"   "HLA-B15:11"   "HLA-B15:13"   "HLA-B15:16"  
+ [81] "HLA-B15:17"   "HLA-B15:18"   "HLA-B15:42"   "HLA-B18:01"   "HLA-B18:03"  
+ [86] "HLA-B27:01"   "HLA-B27:02"   "HLA-B27:03"   "HLA-B27:04"   "HLA-B27:05"  
+ [91] "HLA-B27:06"   "HLA-B27:07"   "HLA-B27:08"   "HLA-B27:09"   "HLA-B27:10"  
+ [96] "HLA-B35:01"   "HLA-B35:02"   "HLA-B35:03"   "HLA-B35:04"   "HLA-B35:06"  
+[101] "HLA-B35:08"   "HLA-B37:01"   "HLA-B38:01"   "HLA-B39:01"   "HLA-B39:05"  
+[106] "HLA-B39:06"   "HLA-B39:09"   "HLA-B39:10"   "HLA-B39:24"   "HLA-B40:01"  
+[111] "HLA-B40:02"   "HLA-B41:01"   "HLA-B41:02"   "HLA-B41:03"   "HLA-B41:04"  
+[116] "HLA-B41:05"   "HLA-B41:06"   "HLA-B42:01"   "HLA-B44:02"   "HLA-B44:03"  
+[121] "HLA-B44:05"   "HLA-B44:08"   "HLA-B44:09"   "HLA-B44:27"   "HLA-B44:28"  
+[126] "HLA-B45:01"   "HLA-B46:01"   "HLA-B47:01"   "HLA-B49:01"   "HLA-B50:01"  
+[131] "HLA-B50:02"   "HLA-B51:01"   "HLA-B51:02"   "HLA-B51:08"   "HLA-B52:01"  
+[136] "HLA-B54:01"   "HLA-B55:01"   "HLA-B55:02"   "HLA-B56:01"   "HLA-B57:01"  
+[141] "HLA-B57:02"   "HLA-B57:03"   "HLA-B58:01"   "HLA-B58:02"   "HLA-B73:01"  
+[146] "HLA-C01:02"   "HLA-C02:02"   "HLA-C03:03"   "HLA-C03:04"   "HLA-C04:01"  
+[151] "HLA-C05:01"   "HLA-C06:02"   "HLA-C07:01"   "HLA-C07:02"   "HLA-C07:04"  
+[156] "HLA-C08:02"   "HLA-C12:02"   "HLA-C12:03"   "HLA-C12:04"   "HLA-C14:02"  
+[161] "HLA-C15:02"   "HLA-C16:01"   "HLA-C17:01"   "JY"           "Line.1"      
+[166] "Line.10"      "Line.11"      "Line.12"      "Line.13"      "Line.14"     
+[171] "Line.15"      "Line.16"      "Line.17"      "Line.18"      "Line.19"     
+[176] "Line.2"       "Line.20"      "Line.21"      "Line.22"      "Line.23"     
+[181] "Line.24"      "Line.25"      "Line.26"      "Line.27"      "Line.28"     
+[186] "Line.29"      "Line.3"       "Line.30"      "Line.31"      "Line.32"     
+[191] "Line.33"      "Line.34"      "Line.35"      "Line.36"      "Line.37"     
+[196] "Line.38"      "Line.39"      "Line.4"       "Line.40"      "Line.41"     
+[201] "Line.42"      "Line.43"      "Line.44"      "Line.45"      "Line.46"     
+[206] "Line.47"      "Line.48"      "Line.49"      "Line.5"       "Line.50"     
+[211] "Line.51"      "Line.52"      "Line.53"      "Line.54"      "Line.55"     
+[216] "Line.6"       "Line.7"       "Line.8"       "Line.9"       "LNT-229"     
+[221] "Mamu-B*00801" "MAVER-1"      "MD155"        "Mel-12"       "Mel-15"      
+[226] "Mel-16"       "Mel-5"        "Mel-624"      "Mel-8"        "pat-AC2"     
+[231] "pat-C"        "pat-CELG"     "pat-CP2"      "pat-FL"       "pat-J"       
+[236] "pat-JPB3"     "pat-JT2"      "pat-M"        "pat-MA"       "pat-ML"      
+[241] "pat-NS2"      "pat-NT"       "pat-PF1"      "pat-R"        "pat-RT"      
+[246] "pat-SR"       "pat-ST"       "PD42"         "RA957"        "RPMI8226"    
+[251] "SK-Mel-5"     "T98G"         "THP-1"        "TIL1"         "TIL3"        
+[256] "U-87"        
+> 
+> # --------------------------------------------------------------------------
+> # Extract EL data that are associated with a single HLA allele
+> # two ways: 
+>     # 1: using allelelist and choosign lines with only 1 HLA
+>     # 2: using Supplementary Table 4
+> # --------------------------------------------------------------------------
+> # using Allele
+> # there are some duplicated rows
+> allele.list = read.delim(sprintf("%sallelelist.txt", dir0), header=FALSE, 
++                          sep = "", fill = TRUE, as.is = TRUE)
+> dim(allele.list)
+[1] 357   2
+> allele.list = unique(allele.list)
+> dim(allele.list)
+[1] 349   2
+> 
+> names(allele.list) = c("cell_line", "hla")
+> head(allele.list)
+  cell_line                                                              hla
+1       A10                                        BoLA-3:00201,BoLA-2:01201
+2   A11-A11                                        BoLA-3:01701,BoLA-2:01801
+3   A12-A15 BoLA-1:01901,BoLA-2:00801,BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+4       A14              BoLA-1:02301,BoLA-4:02401,BoLA-6:04001,BoLA-2:02501
+5   A15-A15                           BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+6       A18                                                     BoLA-6:01301
+> 
+> allele.list[which(allele.list$cell_line == "Line.1"),]
+   cell_line                                                               hla
+25    Line.1 HLA-A01:01,HLA-A03:01,HLA-B08:01,HLA-B07:02,HLA-C07:02,HLA-C07:01
+> 
+> hla.list = strsplit(allele.list$hla, split=",")
+> n.hla    = sapply(hla.list, length)
+> table(n.hla)
+n.hla
+  1   2   3   4   5   6 
+236   4  13  13   4  79 
+> 
+> alleles = allele.list$cell_line[which(n.hla ==1)]
+> head(alleles)
+[1] "A18"          "BoLA-1:02101" "BoLA-2:00801" "BoLA-2:01201" "BoLA-4:02401"
+[6] "BoLA-6:01301"
+> length(alleles)
+[1] 236
+> 
+> # Matching SA lines with Supplementary Table 4.
+> # 8 H-2, 3 DLA, 1 Mamu, A, B, C
+> alleles0 = unique(dat0$HLA)
+> length(alleles0)
+[1] 256
+> head(alleles0)
+[1] "A20-A20"    "HLA-C14:02" "HLA-B44:02" "Bcell"      "LNT-229"   
+[6] "H-2-Dq"    
+> 
+> table(alleles0 %in% allele.list$cell_line)
+
+TRUE 
+ 256 
+> table(alleles0 %in% alleles)
+
+FALSE  TRUE 
+  113   143 
+> 
+> alleles1 = alleles0[grep("HLA-", alleles0, fixed=TRUE)]
+> length(alleles1)
+[1] 130
+> 
+> setdiff(intersect(alleles0, alleles), alleles1)
+ [1] "H-2-Dq"       "DLA-8803401"  "H-2-Kb"       "A18"          "H-2-Db"      
+ [6] "DLA-8850101"  "DLA-8850801"  "H-2-Kd"       "Mamu-B*00801" "H-2-Kq"      
+[11] "H-2-Kk"       "H-2-Dd"       "H-2-Ld"      
+> 
+> alleles_sup3 = alleles1
+> table(alleles_sup3 %in% allele.list$cell_line)
+
+TRUE 
+ 130 
+> 
+> alleles_sa   = allele.list[which(allele.list$cell_line %in% alleles_sup3),]
+> dim(alleles_sa)
+[1] 130   2
+> head(alleles_sa)
+     cell_line        hla
+148 HLA-A01:01 HLA-A01:01
+149 HLA-A01:03 HLA-A01:03
+150 HLA-A02:01 HLA-A02:01
+152 HLA-A02:03 HLA-A02:03
+153 HLA-A02:04 HLA-A02:04
+154 HLA-A02:05 HLA-A02:05
+> table(alleles_sa$cell_line == alleles_sa$hla)
+
+TRUE 
+ 130 
+> 
+> write.table(alleles_sa, "../../data/SA_data/alleles_SAonly.txt", 
++             sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+> 
+> length(alleles_sup3)
+[1] 130
+> sort(table(dat0$HLA[which(dat0$HLA %in% alleles_sup3)]))
+
+HLA-A02:06 HLA-A25:01 HLA-A26:02 HLA-A26:03 HLA-A69:01 HLA-B50:02 HLA-B55:01 
+         6          6          6          6         12         12         12 
+HLA-C07:04 HLA-C12:04 HLA-B55:02 HLA-B15:42 HLA-B15:03 HLA-B44:05 HLA-B15:18 
+        12         18         29         30         34         34         35 
+HLA-B15:13 HLA-B39:05 HLA-B58:02 HLA-B52:01 HLA-A30:04 HLA-B39:10 HLA-B51:02 
+        36         47         47         48         50         56         67 
+HLA-B15:17 HLA-C12:02 HLA-A30:03 HLA-A01:03 HLA-B39:09 HLA-B57:02 HLA-A02:14 
+        78         78         79         82         94         98         99 
+HLA-B15:09 HLA-B35:06 HLA-B27:10 HLA-B42:01 HLA-B35:04 HLA-B38:01 HLA-B15:08 
+       100        115        130        130        131        134        153 
+HLA-B41:02 HLA-A03:02 HLA-A30:02 HLA-A68:01 HLA-B14:03 HLA-A30:01 HLA-B15:10 
+       157        197        217        245        260        266        277 
+HLA-B15:16 HLA-B41:05 HLA-B41:06 HLA-B47:01 HLA-A66:02 HLA-A66:01 HLA-B37:01 
+       313        332        334        366        377        384        400 
+HLA-B41:04 HLA-B35:02 HLA-B13:02 HLA-B44:08 HLA-B13:01 HLA-B41:03 HLA-B44:28 
+       505        727        743        772        968       1057       1093 
+HLA-B18:03 HLA-B44:09 HLA-B44:27 HLA-A23:01 HLA-B73:01 HLA-B15:11 HLA-B39:24 
+      2289       2336       2582       2641       3293       3347       3452 
+HLA-A26:01 HLA-B35:08 HLA-B35:03 HLA-B49:01 HLA-A24:06 HLA-A02:05 HLA-A24:13 
+      3683       3845       4092       4148       4341       4475       5270 
+HLA-B14:02 HLA-C07:01 HLA-B39:06 HLA-C17:01 HLA-B41:01 HLA-B50:01 HLA-B51:08 
+      5945       6776       7577       8587      10164      11212      12757 
+HLA-A32:01 HLA-B56:01 HLA-B45:01 HLA-B27:03 HLA-B39:01 HLA-B54:01 HLA-B18:01 
+     13676      14531      16016      17354      20802      21892      22995 
+HLA-C12:03 HLA-A31:01 HLA-B27:06 HLA-B27:04 HLA-C07:02 HLA-C03:03 HLA-C02:02 
+     24495      27539      27663      28515      28836      31071      31874 
+HLA-C15:02 HLA-C14:02 HLA-B27:08 HLA-A68:02 HLA-B27:07 HLA-B35:01 HLA-C01:02 
+     34047      34465      35916      38139      41149      41239      41465 
+HLA-C16:01 HLA-A02:03 HLA-C04:01 HLA-B46:01 HLA-C08:02 HLA-B15:02 HLA-B27:02 
+     42603      44413      46055      47700      47930      47965      48541 
+HLA-B40:01 HLA-A11:01 HLA-C06:02 HLA-C03:04 HLA-B27:01 HLA-B58:01 HLA-B51:01 
+     49883      53824      57238      59096      62976      65852      75169 
+HLA-B57:03 HLA-B44:02 HLA-B44:03 HLA-A03:01 HLA-A02:04 HLA-A01:01 HLA-B08:01 
+     76422      79200      79392      80196      84438      84823      86437 
+HLA-B27:09 HLA-C05:01 HLA-B27:05 HLA-A02:07 HLA-A24:02 HLA-B15:01 HLA-B40:02 
+     93384      95874     102116     107169     118743     145365     145817 
+HLA-A29:02 HLA-B57:01 HLA-B07:02 HLA-A02:01 
+    181136     184773     201038     265252 
+> 
+> dat1 = dat0[which(dat0$HLA %in% alleles_sup3),]
+> length(unique(dat1$HLA))
+[1] 130
+> dim(dat1)
+[1] 3679405       3
+> head(dat1)
+       peptide binder        HLA
+1:  YFPLAPFNQL      1 HLA-C14:02
+2:   KESKINQVF      1 HLA-B44:02
+3: QPHDPLVPLSA      1 HLA-B54:01
+4: RTIADSLINSF      1 HLA-B57:03
+5:   EEKTIIKKL      1 HLA-B44:03
+6:  LLDELPQSVL      1 HLA-C08:02
+> 
+> table(dat1$binder)
+
+      0       1 
+3481858  197547 
+> tb1 = table(dat1$binder, dat1$HLA)
+> dim(tb1)
+[1]   2 130
+> tb1[,1:5]
+   
+    HLA-A01:01 HLA-A01:03 HLA-A02:01 HLA-A02:03 HLA-A02:04
+  0      77667         75     252227      42540      81283
+  1       7156          7      13025       1873       3155
+> 
+> print("ratio of non-binders to binders")
+[1] "ratio of non-binders to binders"
+> summary(tb1[1,]/tb1[2,])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.800   9.481  14.996  14.434  18.859  26.992 
+> 
+> dat1$pep_length = nchar(dat1$peptide)
+> table(dat1$pep_length, dat1$binder)
+    
+          0      1
+  8  528081  14236
+  9  527626 105971
+  10 528553  37692
+  11 528553  23702
+  12 472781   9139
+  13 463348   4552
+  14 420760   2231
+  15  12156     24
+> rm(dat1)
+> gc()
+            used  (Mb) gc trigger   (Mb) limit (Mb)  max used   (Mb)
+Ncells  12471243 666.1   24605612 1314.1         NA  13365003  713.8
+Vcells 109452021 835.1  221026880 1686.4      16384 220330815 1681.0
+> 
+> set.seed(123)
+> 
+> # --------------------------------------------------------------------------
+> # format and save training data for each split
+> # --------------------------------------------------------------------------
+> 
+> for(i in 0:4){
++   set.seed(101)
++   
++   train.data0 = fread(sprintf("%sc00%d_el", dir0, i))
++ 
++   print("-----------------------------------------------------")
++   print(sprintf("i=%d", i))
++   print("-----------------------------------------------------")
++   
++   names(train.data0)  = c("peptide", "binder", "HLA")
++   
++   print(table(alleles_sup3 %in% train.data0$HLA))
++   
++   # subset data to SA alleles only 
++   train.data0 = train.data0[which(train.data0$HLA %in% alleles_sup3),]
++   table(train.data0$HLA)
++   table(train.data0$binder)
++ 
++   t1 = table(str_length(train.data0$peptide), train.data0$binder)
++   t1 = cbind(t1, t1[,2]/rowSums(t1))
++   t1
++   
++   ww1 = train.data0$HLA %in% alleles_sup3 & 
++     str_length(train.data0$peptide)<=11 &
++     str_length(train.data0$peptide)>=8
++ 
++   print(paste("removed", toString(sum(str_length(train.data0$peptide)<8)), 
++               "and", toString(sum(str_length(train.data0$peptide)>11)), 
++               "training peptides with length < 8 or > 15, respectively"))
++ 
++   train.data = train.data0[which(ww1),]
++   print(table(train.data$binder))
++   print(table(alleles_sup3 %in% train.data$HLA))
++ 
++   # check for duplication for peptide+HLA, remove all instances except original
++   print("dimension of training data")
++   print(dim(train.data))
++   
++   if(sum(duplicated(train.data[, c("peptide", "HLA")]))>0){
++     temp1 = train.data[, c("peptide", "HLA")]
++     train.data = train.data[!duplicated(temp1),]
++     print(paste("Removed", sum(duplicated(temp1)),
++                 "duplicated peptide+HLA paired observations in training."))
++   }else{
++     print("Note: No duplicated peptide+HLA paired observations in training")
++   }
++   
++   # create 9AA representation for training data 
++   train.data$length = nchar(train.data$peptide)
++   print("final data distributions by length and binder")
++   print(table(train.data$length))
++   print(table(train.data$binder))
++   print("ratio of nonbinders:binders")
++   print(round(table(train.data$binder)[1]/table(train.data$binder)[2],2))
++   
++   ww8  = which(train.data$length==8)
++   ww9  = which(train.data$length==9)
++ 
++   data_all = NULL
++   data_new = NULL
++   
++   data8 = train.data[ww8,]
++   start_pos = 1
++   data8$pep_core  = paste0("X", data8$peptide)
++   data8$start_pos = start_pos
++   data_new = rbind(data_new, data8)
++   
++   for(start_pos in 2:9){
++     data8 = train.data[ww8,]
++     data8$pep_core  = gsub(paste0("^(.{", start_pos-1, "})(.*)$"), 
++                            "\\1X\\2", data8$peptide)
++     data8$start_pos = start_pos
++     data_new = rbind(data_new, data8)
++   }
++   
++   # for each non-binder, randomly choose one start position
++   data_n1 = data_new[binder==1,]
++   data_n0 = data_new[binder==0,]
++   
++   data_n0$key = paste(data_n0$peptide, data_n0$HLA, sep=":")
++   stopifnot(all(table(data_n0$key) == 9))
++   
++   dim(data_n0)
++   data_n0
++   
++   data_n0 = data_n0[, .SD[sample(x = .N, size = 1)], by = key]
++   dim(data_n0)
++   data_n0
++   
++   table(data_n0$start_pos)
++   
++   stopifnot(all(table(data_n0$key) == 1))
++   data_n0[, key:=NULL]
++   
++   data_n1$weight = 1/9
++   data_n0$weight = 1
++   
++   data_all = rbind(data_all, data_n1)
++   data_all = rbind(data_all, data_n0)
++   
++   data9 = train.data[ww9,]
++   data9$pep_core = data9$peptide
++   data9$start_pos = 1
++   data9$weight = 1
++   data_all = rbind(data_all, data9)
++   
++   for(len1 in 10:11){
++     data_l = train.data[which(train.data$length==len1),]
++     len2rm = len1 - 9
++     
++     data_new = NULL
++     
++     for(k in 1:(len1 - len2rm + 1)){
++       data_l$pep_core = data_l$peptide
++       str_sub(data_l$pep_core, start=k, end=k+len2rm-1) = ""
++       data_l$start_pos = k
++       data_new = rbind(data_new, data_l)
++     }
++     
++     data_n1 = data_new[binder==1,]
++     data_n0 = data_new[binder==0,]
++     
++     data_n0$key = paste(data_n0$peptide, data_n0$HLA, sep=":")
++     stopifnot(all(table(data_n0$key) == 10))
++     
++     dim(data_n0)
++     data_n0
++     
++     data_n0 = data_n0[, .SD[sample(x = .N, size = 1)], by = key]
++     dim(data_n0)
++     data_n0
++     table(data_n0$start_pos)
++     
++     stopifnot(all(table(data_n0$key) == 1))
++     data_n0[, key:=NULL]
++     
++     data_n1$weight = 1/10
++     data_n0$weight = 1
++     
++     data_all = rbind(data_all, data_n1)
++     data_all = rbind(data_all, data_n0)
++   }
++   
++   print("dimension of new data")
++   print(dim(data_all))
++   print(head(data_all))
++   
++   print("length of pepcore")
++   print(table(nchar(data_all$pep_core)))
++   
++   print("table of weight vs. peptide length")
++   print(table(data_all$length, data_all$weight))
++   
++   print("table of start_pos vs. peptide length")
++   print(table(data_all$length, data_all$start_pos))
++   
++   # Output data files 
++   dir1= "../../data/SA_data/by_split"
++ 
++   fnm = sprintf("%s/train_v4_el_single_HLA_9AA_%d.txt", dir1, i)
++   fwrite(data_all, fnm, sep="\t")
++   system(sprintf("gzip %s", fnm))
++ }
+[1] "-----------------------------------------------------"
+[1] "i=0"
+[1] "-----------------------------------------------------"
+
+FALSE  TRUE 
+    2   128 
+[1] "removed 0 and 276401 training peptides with length < 8 or > 15, respectively"
+
+     0      1 
+422462  36468 
+
+FALSE  TRUE 
+    2   128 
+[1] "dimension of training data"
+[1] 458930      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "final data distributions by length and binder"
+
+     8      9     10     11 
+108328 126522 113316 110764 
+
+     0      1 
+422462  36468 
+[1] "ratio of nonbinders:binders"
+    0 
+11.58 
+[1] "dimension of new data"
+[1] 593201      7
+    peptide binder        HLA length  pep_core start_pos    weight
+1: IPAYFVTV      1 HLA-B51:01      8 XIPAYFVTV         1 0.1111111
+2: AADGPQKL      1 HLA-C05:01      8 XAADGPQKL         1 0.1111111
+3: VLMGSSIL      1 HLA-A02:05      8 XVLMGSSIL         1 0.1111111
+4: KPSGQQTL      1 HLA-B07:02      8 XKPSGQQTL         1 0.1111111
+5: KLQLLAVV      1 HLA-A02:01      8 XKLQLLAVV         1 0.1111111
+6: AHWPIFKW      1 HLA-B57:01      8 XAHWPIFKW         1 0.1111111
+[1] "length of pepcore"
+
+     9 
+593201 
+[1] "table of weight vs. peptide length"
+    
+        0.1 0.111111111111111      1
+  8       0             26082 105430
+  9       0                 0 126522
+  10  75980                 0 105718
+  11  47450                 0 106019
+[1] "table of start_pos vs. peptide length"
+    
+          1      2      3      4      5      6      7      8      9     10
+  8   14578  14495  14567  14519  14709  14645  14777  14609  14613      0
+  9  126522      0      0      0      0      0      0      0      0      0
+  10  18243  18169  18063  18312  18033  18081  18054  18220  18206  18317
+  11  15327  15447  15321  15301  15384  15399  15249  15312  15392  15337
+[1] "-----------------------------------------------------"
+[1] "i=1"
+[1] "-----------------------------------------------------"
+
+FALSE  TRUE 
+    1   129 
+[1] "removed 0 and 276391 training peptides with length < 8 or > 15, respectively"
+
+     0      1 
+421649  36103 
+
+FALSE  TRUE 
+    1   129 
+[1] "dimension of training data"
+[1] 457752      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "final data distributions by length and binder"
+
+     8      9     10     11 
+108579 126436 112844 109893 
+
+     0      1 
+421649  36103 
+[1] "ratio of nonbinders:binders"
+    0 
+11.68 
+[1] "dimension of new data"
+[1] 590298      7
+    peptide binder        HLA length  pep_core start_pos    weight
+1: FPHIMPLA      1 HLA-B56:01      8 XFPHIMPLA         1 0.1111111
+2: SADVEERF      1 HLA-B58:01      8 XSADVEERF         1 0.1111111
+3: LRFLFNEL      1 HLA-C07:02      8 XLRFLFNEL         1 0.1111111
+4: KLDEEALL      1 HLA-C17:01      8 XKLDEEALL         1 0.1111111
+5: MPRLIAKV      1 HLA-B51:01      8 XMPRLIAKV         1 0.1111111
+6: RFINGSAL      1 HLA-C14:02      8 XRFINGSAL         1 0.1111111
+[1] "length of pepcore"
+
+     9 
+590298 
+[1] "table of weight vs. peptide length"
+    
+        0.1 0.111111111111111      1
+  8       0             25812 105711
+  9       0                 0 126436
+  10  75370                 0 105307
+  11  46410                 0 105252
+[1] "table of start_pos vs. peptide length"
+    
+          1      2      3      4      5      6      7      8      9     10
+  8   14586  14504  14556  14518  14712  14648  14779  14613  14607      0
+  9  126436      0      0      0      0      0      0      0      0      0
+  10  18132  18060  17969  18212  17937  17977  17956  18116  18109  18209
+  11  15161  15255  15144  15134  15194  15222  15043  15135  15223  15151
+[1] "-----------------------------------------------------"
+[1] "i=2"
+[1] "-----------------------------------------------------"
+
+FALSE  TRUE 
+    3   127 
+[1] "removed 0 and 277496 training peptides with length < 8 or > 15, respectively"
+
+     0      1 
+422241  36308 
+
+FALSE  TRUE 
+    3   127 
+[1] "dimension of training data"
+[1] 458549      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "final data distributions by length and binder"
+
+     8      9     10     11 
+108322 126229 113366 110632 
+
+     0      1 
+422241  36308 
+[1] "ratio of nonbinders:binders"
+    0 
+11.63 
+[1] "dimension of new data"
+[1] 591622      7
+    peptide binder        HLA length  pep_core start_pos    weight
+1: YFFTPYVY      1 HLA-A29:02      8 XYFFTPYVY         1 0.1111111
+2: VRKDLQNF      1 HLA-B27:05      8 XVRKDLQNF         1 0.1111111
+3: LVKVVTLW      1 HLA-B57:01      8 XLVKVVTLW         1 0.1111111
+4: NFLNRTSL      1 HLA-C14:02      8 XNFLNRTSL         1 0.1111111
+5: YEGAVVIL      1 HLA-B40:02      8 XYEGAVVIL         1 0.1111111
+6: EAHARIHL      1 HLA-B08:01      8 XEAHARIHL         1 0.1111111
+[1] "length of pepcore"
+
+     9 
+591622 
+[1] "table of weight vs. peptide length"
+    
+        0.1 0.111111111111111      1
+  8       0             25362 105504
+  9       0                 0 126229
+  10  74930                 0 105873
+  11  47880                 0 105844
+[1] "table of start_pos vs. peptide length"
+    
+          1      2      3      4      5      6      7      8      9     10
+  8   14505  14431  14493  14447  14634  14570  14707  14538  14541      0
+  9  126229      0      0      0      0      0      0      0      0      0
+  10  18149  18075  17973  18226  17950  17997  17965  18128  18116  18224
+  11  15357  15465  15348  15323  15409  15423  15275  15338  15418  15368
+[1] "-----------------------------------------------------"
+[1] "i=3"
+[1] "-----------------------------------------------------"
+
+TRUE 
+ 130 
+[1] "removed 0 and 277472 training peptides with length < 8 or > 15, respectively"
+
+     0      1 
+424476  36249 
+
+TRUE 
+ 130 
+[1] "dimension of training data"
+[1] 460725      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "final data distributions by length and binder"
+
+     8      9     10     11 
+108480 127532 113749 110964 
+
+     0      1 
+424476  36249 
+[1] "ratio of nonbinders:binders"
+    0 
+11.71 
+[1] "dimension of new data"
+[1] 594793      7
+    peptide binder        HLA length  pep_core start_pos    weight
+1: GPGGPRNL      1 HLA-B07:02      8 XGPGGPRNL         1 0.1111111
+2: VQALRTVL      1 HLA-B14:02      8 XVQALRTVL         1 0.1111111
+3: IYDTKGRF      1 HLA-C04:01      8 XIYDTKGRF         1 0.1111111
+4: FLDVENEL      1 HLA-C05:01      8 XFLDVENEL         1 0.1111111
+5: MIDFPQMV      1 HLA-C08:02      8 XMIDFPQMV         1 0.1111111
+6: VYNKGTSL      1 HLA-C14:02      8 XVYNKGTSL         1 0.1111111
+[1] "length of pepcore"
+
+     9 
+594793 
+[1] "table of weight vs. peptide length"
+    
+        0.1 0.111111111111111      1
+  8       0             25641 105631
+  9       0                 0 127532
+  10  75730                 0 106176
+  11  47910                 0 106173
+[1] "table of start_pos vs. peptide length"
+    
+          1      2      3      4      5      6      7      8      9     10
+  8   14552  14478  14532  14493  14680  14618  14753  14585  14581      0
+  9  127532      0      0      0      0      0      0      0      0      0
+  10  18242  18193  18098  18331  18053  18114  18082  18233  18224  18336
+  11  15405  15500  15363  15357  15472  15450  15320  15374  15452  15390
+[1] "-----------------------------------------------------"
+[1] "i=4"
+[1] "-----------------------------------------------------"
+
+FALSE  TRUE 
+    2   128 
+[1] "removed 0 and 277231 training peptides with length < 8 or > 15, respectively"
+
+     0      1 
+421985  36473 
+
+FALSE  TRUE 
+    2   128 
+[1] "dimension of training data"
+[1] 458458      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "final data distributions by length and binder"
+
+     8      9     10     11 
+108608 126878 112970 110002 
+
+     0      1 
+421985  36473 
+[1] "ratio of nonbinders:binders"
+    0 
+11.57 
+[1] "dimension of new data"
+[1] 590934      7
+    peptide binder        HLA length  pep_core start_pos    weight
+1: DPYTEQTI      1 HLA-B51:01      8 XDPYTEQTI         1 0.1111111
+2: HEGPALYY      1 HLA-B18:01      8 XHEGPALYY         1 0.1111111
+3: TDISARIL      1 HLA-B40:02      8 XTDISARIL         1 0.1111111
+4: FLDRNSQF      1 HLA-C05:01      8 XFLDRNSQF         1 0.1111111
+5: RADKQHVL      1 HLA-C08:02      8 XRADKQHVL         1 0.1111111
+6: KRDAVEMI      1 HLA-B27:05      8 XKRDAVEMI         1 0.1111111
+[1] "length of pepcore"
+
+     9 
+590934 
+[1] "table of weight vs. peptide length"
+    
+        0.1 0.111111111111111      1
+  8       0             25227 105805
+  9       0                 0 126878
+  10  74910                 0 105479
+  11  47370                 0 105265
+[1] "table of start_pos vs. peptide length"
+    
+          1      2      3      4      5      6      7      8      9     10
+  8   14525  14450  14499  14466  14659  14592  14730  14560  14551      0
+  9  126878      0      0      0      0      0      0      0      0      0
+  10  18105  18031  17947  18183  17903  17954  17921  18085  18083  18177
+  11  15254  15360  15237  15216  15294  15317  15149  15235  15318  15255
+> 
+> gc()
+            used   (Mb) gc trigger   (Mb) limit (Mb)  max used   (Mb)
+Ncells  13857784  740.1   24605612 1314.1         NA  24605612 1314.1
+Vcells 153574751 1171.7  265312256 2024.2      16384 265312254 2024.2
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0     data.table_1.12.2
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1 magrittr_1.5   tools_3.6.1    stringi_1.4.3 
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+648.678  15.741 486.158 

@@ -1,0 +1,254 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #---------------------------------------------------------------------------------
+> # Modify MA data so that the number of negative peptides is 
+> # of the same ratio to the number of positive peptides
+> #---------------------------------------------------------------------------------
+> 
+> library(data.table)
+> library(stringr)
+> 
+> dir0 = "../../../data/NetMHCpan4_1_train"
+> dir1 = "../../../data/MA_data"
+> 
+> for(i in 0:4){
++   fnm   = sprintf("%s/train_v4_el_multi_HLA_%d.txt.gz", dir1, i)
++   cat(i, " ", fnm, "\n")
++   
++   dat_i = fread(fnm)
++   dim(dat_i)
++   dat_i[1:5,]
++   
++   t2 = tapply(dat_i$peptide, dat_i$cell_line, anyDuplicated)
++   stopifnot(all(t2 == 0))
++   
++   stopifnot(all(str_length(dat_i$peptide) == 15))
++   dat_i$len = 15 - str_count(dat_i$peptide, "X")
++   
++   tb1 = table(dat_i$len)
++   tb2 = table(dat_i$binder, dat_i$len)
++   
++   print(tb1)
++   print(tb2)
++   print(tb2[1,]/tb2[2,])
++   
++   # keep the number for 9aa peptide and select 5x negatives 
++   # for all other lengths
++   
++   w2kp = NULL
++   
++   set.seed(111)
++   
++   for(l1 in c(8, 10:15)){
++     print(l1)
++     w_pos  = which(dat_i$len == l1 & dat_i$binder == 1)
++     w_neg  = which(dat_i$len == l1 & dat_i$binder == 0)
++     n_pos  = length(w_pos)
++     n_neg  = 5*n_pos
++     
++     w2kp   = c(w2kp, w_pos, sample(w_neg, n_neg))
++   }
++   
++   dat_i_new = dat_i[w2kp,]
++   dat_i_new = rbind(dat_i_new, dat_i[which(dat_i$len ==9),])
++   dim(dat_i_new)
++   
++   tb1 = table(dat_i_new$len)
++   tb2 = table(dat_i_new$binder, dat_i_new$len)
++   
++   print(tb1)
++   print(tb2)
++   print(tb2[1,]/tb2[2,])
++   
++   fnm1_new = sub("multi_HLA_", "multi_HLA_balanced_", fnm)
++   fnm1_new = sub(".gz", "", fnm1_new)
++   
++   cols2kp = c("peptide", "binder", "cell_line")
++   
++   write.table(dat_i_new[,..cols2kp], fnm1_new, sep="\t", quote = FALSE, 
++               row.names = FALSE)
++   system(sprintf("gzip %s", fnm1_new))
++ }
+0   ../../../data/MA_data/train_v4_el_multi_HLA_0.txt.gz 
+
+     8      9     10     11     12     13     14     15 
+327713 386327 342594 335802 252546 247984 239698   2503 
+   
+         8      9     10     11     12     13     14     15
+  0 322221 321649 322035 322742 248828 245994 238649   2498
+  1   5492  64678  20559  13060   3718   1990   1049      5
+         8          9         10         11         12         13         14 
+ 58.670976   4.973082  15.663943  24.712251  66.925229 123.615075 227.501430 
+        15 
+499.600000 
+[1] 8
+[1] 10
+[1] 11
+[1] 12
+[1] 13
+[1] 14
+[1] 15
+
+     8      9     10     11     12     13     14     15 
+ 32952 386327 123354  78360  22308  11940   6294     30 
+   
+         8      9     10     11     12     13     14     15
+  0  27460 321649 102795  65300  18590   9950   5245     25
+  1   5492  64678  20559  13060   3718   1990   1049      5
+       8        9       10       11       12       13       14       15 
+5.000000 4.973082 5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 
+1   ../../../data/MA_data/train_v4_el_multi_HLA_1.txt.gz 
+
+     7      8      9     10     11     12     13     14     15 
+     1 327050 384167 341160 334191 251108 249271 238733   2348 
+   
+         7      8      9     10     11     12     13     14     15
+  0      0 321557 320399 321106 321469 247389 247308 237696   2343
+  1      1   5493  63768  20054  12722   3719   1963   1037      5
+         7          8          9         10         11         12         13 
+  0.000000  58.539414   5.024448  16.012067  25.268747  66.520301 125.984717 
+        14         15 
+229.215043 468.600000 
+[1] 8
+[1] 10
+[1] 11
+[1] 12
+[1] 13
+[1] 14
+[1] 15
+
+     8      9     10     11     12     13     14     15 
+ 32958 384167 120324  76332  22314  11778   6222     30 
+   
+         8      9     10     11     12     13     14     15
+  0  27465 320399 100270  63610  18595   9815   5185     25
+  1   5493  63768  20054  12722   3719   1963   1037      5
+       8        9       10       11       12       13       14       15 
+5.000000 5.024448 5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 
+2   ../../../data/MA_data/train_v4_el_multi_HLA_2.txt.gz 
+
+     8      9     10     11     12     13     14     15 
+327684 385855 342547 335682 253572 249438 239770   2470 
+   
+         8      9     10     11     12     13     14     15
+  0 322279 320959 322001 322446 249478 247331 238635   2467
+  1   5405  64896  20546  13236   4094   2107   1135      3
+         8          9         10         11         12         13         14 
+ 59.626087   4.945744  15.672199  24.361287  60.937469 117.385382 210.251101 
+        15 
+822.333333 
+[1] 8
+[1] 10
+[1] 11
+[1] 12
+[1] 13
+[1] 14
+[1] 15
+
+     8      9     10     11     12     13     14     15 
+ 32430 385855 123276  79416  24564  12642   6810     18 
+   
+         8      9     10     11     12     13     14     15
+  0  27025 320959 102730  66180  20470  10535   5675     15
+  1   5405  64896  20546  13236   4094   2107   1135      3
+       8        9       10       11       12       13       14       15 
+5.000000 4.945744 5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 
+3   ../../../data/MA_data/train_v4_el_multi_HLA_3.txt.gz 
+
+     8      9     10     11     12     13     14     15 
+327372 386064 343795 335720 253675 249613 240537   2513 
+   
+         8      9     10     11     12     13     14     15
+  0 321924 322202 323300 322826 249736 247644 239431   2507
+  1   5448  63862  20495  12894   3939   1969   1106      6
+         8          9         10         11         12         13         14 
+ 59.090308   5.045285  15.774579  25.036916  63.400863 125.771458 216.483725 
+        15 
+417.833333 
+[1] 8
+[1] 10
+[1] 11
+[1] 12
+[1] 13
+[1] 14
+[1] 15
+
+     8      9     10     11     12     13     14     15 
+ 32688 386064 122970  77364  23634  11814   6636     36 
+   
+         8      9     10     11     12     13     14     15
+  0  27240 322202 102475  64470  19695   9845   5530     30
+  1   5448  63862  20495  12894   3939   1969   1106      6
+       8        9       10       11       12       13       14       15 
+5.000000 5.045285 5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 
+4   ../../../data/MA_data/train_v4_el_multi_HLA_4.txt.gz 
+
+     8      9     10     11     12     13     14     15 
+326559 386093 341665 334067 252613 248601 238979   2346 
+   
+         8      9     10     11     12     13     14     15
+  0 321344 320678 321060 320893 248727 246549 237951   2341
+  1   5215  65415  20605  13174   3886   2052   1028      5
+         8          9         10         11         12         13         14 
+ 61.619175   4.902209  15.581655  24.358054  64.005919 120.150585 231.469844 
+        15 
+468.200000 
+[1] 8
+[1] 10
+[1] 11
+[1] 12
+[1] 13
+[1] 14
+[1] 15
+
+     8      9     10     11     12     13     14     15 
+ 31290 386093 123630  79044  23316  12312   6168     30 
+   
+         8      9     10     11     12     13     14     15
+  0  26075 320678 103025  65870  19430  10260   5140     25
+  1   5215  65415  20605  13174   3886   2052   1028      5
+       8        9       10       11       12       13       14       15 
+5.000000 4.902209 5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0     data.table_1.12.2
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1    magrittr_1.5      tools_3.6.1       R.methodsS3_1.8.1
+[5] stringi_1.4.3     R.utils_2.10.1    R.oo_1.24.0      
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+ 70.025   2.913  67.183 

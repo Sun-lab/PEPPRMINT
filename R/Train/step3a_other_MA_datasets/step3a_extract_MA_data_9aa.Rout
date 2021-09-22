@@ -1,0 +1,397 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #---------------------------------------------------------------------------------
+> # Step 4. extract 9 AA MA data
+> # Note: For MA HLA-I EL peptide data 
+> #---------------------------------------------------------------------------------
+> 
+> library(data.table)
+> library(stringi)
+> library(stringr)
+> 
+> dir0 = "../../../data/NetMHCpan4_1_train"
+> 
+> # --------------------------------------------------------------------------
+> # Extract EL data that are associated with a multiple HLA alleles
+> # --------------------------------------------------------------------------
+> # this file has been modified to replace tab with space in 'step1'
+> allele.list = fread(sprintf("%s/allelelist.txt", dir0), header=FALSE)
+> dim(allele.list)
+[1] 357   2
+> names(allele.list) = c("cell_line", "hla")
+> head(allele.list)
+   cell_line                                                              hla
+1:       A10                                        BoLA-3:00201,BoLA-2:01201
+2:   A11-A11                                        BoLA-3:01701,BoLA-2:01801
+3:   A12-A15 BoLA-1:01901,BoLA-2:00801,BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+4:       A14              BoLA-1:02301,BoLA-4:02401,BoLA-6:04001,BoLA-2:02501
+5:   A15-A15                           BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+6:       A18                                                     BoLA-6:01301
+> 
+> #remove duplciations 
+> allele.list[duplicated(allele.list$cell_line),]
+       cell_line           hla
+1:  BoLA-6:01301  BoLA-6:01301
+2: Mamu-A1*00101 Mamu-A1*00101
+3: Mamu-A1*00201 Mamu-A1*00201
+4: Mamu-A1*01101 Mamu-A1*01101
+5:  Mamu-B*00101  Mamu-B*00101
+6:  Mamu-B*00301  Mamu-B*00301
+7:  Mamu-B*00401  Mamu-B*00401
+8:  Mamu-B*00801  Mamu-B*00801
+> allele.list[which(allele.list$cell_line=="BoLA-6:01301"),]
+      cell_line          hla
+1: BoLA-6:01301 BoLA-6:01301
+2: BoLA-6:01301 BoLA-6:01301
+> allele.list = allele.list[!duplicated(allele.list$cell_line),]
+> dim(allele.list)
+[1] 349   2
+> 
+> # table of cell_lines
+> hla.list = strsplit(allele.list$hla, split=",")
+> n.hla    = sapply(hla.list, length)
+> table(n.hla)
+n.hla
+  1   2   3   4   5   6 
+236   4  13  13   4  79 
+> table(n.hla > 1)
+
+FALSE  TRUE 
+  236   113 
+> 
+> # cell lines with HLA alleles
+> hla_cell_line = grepl("HLA", allele.list$cell_line)
+> hla_in_hla    = grepl("HLA", allele.list$hla)
+> table(hla_cell_line, hla_in_hla, useNA="ifany")
+             hla_in_hla
+hla_cell_line FALSE TRUE
+        FALSE    82  105
+        TRUE      0  162
+> 
+> # --------------------------------------------------------------------------
+> # Check MA data matches Supplementary Table 1 and 5
+> # --------------------------------------------------------------------------
+> # import all data
+> c0 = fread(paste0(dir0, "/c000_el"))
+> c1 = fread(paste0(dir0, "/c001_el"))
+> c2 = fread(paste0(dir0, "/c002_el"))
+> c3 = fread(paste0(dir0, "/c003_el"))
+> c4 = fread(paste0(dir0, "/c004_el"))
+> 
+> # combine all data 
+> dat0 = rbind(c0, c1)
+> dat0 = rbind(dat0, c2)
+> dat0 = rbind(dat0, c3)
+> dat0 = rbind(dat0, c4)
+> dim(dat0)
+[1] 12868293        3
+> colnames(dat0) = c("peptide", "binder", "HLA")
+> dat0[1:2,]
+      peptide binder        HLA
+1:   LKFLPSRL      1    A20-A20
+2: YFPLAPFNQL      1 HLA-C14:02
+> 
+> cell_line_2use = allele.list$cell_line[hla_in_hla & (! hla_cell_line)]
+> length(cell_line_2use)
+[1] 105
+> 
+> dat1 = dat0[which(dat0$HLA %in% cell_line_2use),]
+> dim(dat1)
+[1] 6991021       3
+> dat1[1:2,]
+      peptide binder     HLA
+1:  VPNAGRGLV      1   Bcell
+2: RLWQNALLEK      1 LNT-229
+> 
+> length(unique(dat1$HLA))
+[1] 105
+> table(dat1$binder)
+
+      0       1 
+6636734  354287 
+> length(unique(dat1$HLA))
+[1] 105
+> sort(table(dat1$HLA))
+
+   Line.43    Line.14    Line.47    Line.52    Line.19    Line.50    Line.26 
+      1474       3084       3242       3440       4186       5209       5213 
+   Line.30    Line.16     Line.1    Line.13    Line.35    Line.54    Line.27 
+      5343       5859       6054       7633       7802       7863       8591 
+   Line.32    Line.42    Line.24    Line.51     Line.2    Line.28    Line.15 
+      8947       9104       9389      10089      11077      11639      12636 
+    Line.7    Line.37    pat-NS2    Line.23    Line.21    Line.33    Line.49 
+     14144      14536      15836      18452      19894      19921      23173 
+   Line.18     Line.4     Line.6     Line.8    Line.44    Line.41    Line.10 
+     23212      24347      24905      25458      25476      25519      25662 
+    pat-ST    Line.12     Line.5     Line.9    pat-JT2    Line.17    Line.53 
+     28206      28998      29165      30393      31036      31740      33039 
+   pat-AC2    Line.45   pat-JPB3     Line.3    Line.22    Line.39    pat-CP2 
+     33521      35979      37206      37298      38141      38259      38664 
+   Line.55    Line.31     Apher6    Line.48      pat-J    Line.29    Line.40 
+     40567      41126      41736      45002      45017      45260      45491 
+   Line.38    Line.20    Line.25       PD42    Mel-624      pat-R     pat-RT 
+     47053      47344      47770      51234      51409      51506      52336 
+     pat-C    Line.46     pat-NT      pat-M     pat-ML     pat-SR    Line.36 
+     52724      54453      55394      55704      58373      60023      60156 
+   Line.11         JY       CA46    Line.34   SK-Mel-5    HCC1143     pat-MA 
+     61804      63683      64924      67374      67781      72282      73520 
+  pat-CELG     pat-FL    pat-PF1     HEK293     Mel-12     HCT116    HCC1937 
+     76083      77995      91472      91543      92106      97296     107231 
+     Mel-5      MD155   RPMI8226      HL-60      Mel-8 Fibroblast     Apher1 
+    111534     112323     117632     122178     125163     127331     129402 
+     CD165       TIL1      THP-1    MAVER-1    LNT-229      CM467       TIL3 
+    138102     145626     148280     178991     188055     191826     214737 
+     GD149       T98G      Bcell      RA957       U-87     Mel-16     Mel-15 
+    217949     225827     232914     243444     252655     275880     416346 
+> 
+> # --------------------------------------------------------------------------
+> # create MA training dataset
+> # --------------------------------------------------------------------------
+> set.seed(1999)
+> 
+> for(i in 0:4){
++   train.data0 = fread(sprintf("%s/c00%d_el", dir0, i))
++ 
++   names(train.data0) = c("peptide", "binder", "cell_line")
++ 
++   if(nrow(train.data0)==0){
++     print("ERROR; NO DATA in given file")
++     break
++   }
++   
++   train.data = train.data0[cell_line %in% cell_line_2use,]
++ 
++   if(nrow(train.data)==0){
++     print("ERROR: NO data in given cell lines")
++     break
++   }
++   
++   print(sprintf("i=%d", i))
++   print(dim(train.data))
++   
++   #Extrat peptides of length 8-15
++   pep_len = nchar(train.data$peptide)
++   ww1 = pep_len <=15 & pep_len >= 8
++   
++   if(sum(ww1)==0){
++     print("ERROR: NO Peptides of length 8 - 15")
++     break
++   }
++   
++   train.data = train.data[which(ww1),]
++   train.data$length = nchar(train.data$peptide)
++   
++   print('MA data distribution before duplication filtering')
++   print(table(train.data$binder))
++   print(table(train.data$length))
++   
++   # check for duplication for peptide+HLA
++   print(dim(train.data))
++   if(sum(duplicated(train.data[, c("peptide", "cell_line")]))>0){
++     temp1 = train.data[, c("peptide", "cell_line")]
++     train.data = train.data[!duplicated(temp1),]
++     print(paste("Removed", sum(duplicated(temp1)),
++                 "duplicated peptide+cell_line paired observations"))
++   }else{
++     print("Note: No duplicated peptide+cell_line paired observations" )
++   }
++   
++   print('MA data distribution after duplication filtering')
++   print(dim(train.data))
++   print(table(train.data$binder))
++   print(table(train.data$length))
++   
++   ww8  = which(train.data$length==8)
++   ww9  = which(train.data$length==9)
++   
++   data_all = NULL
++   data_new = NULL
++   
++   data8 = train.data[ww8,]
++   data8$pep_core  = gsub("^(.{3})(.*)$", "\\1X\\2", data8$peptide)
++   data8$start_pos = 4
++   data_new = rbind(data_new, data8)
++   
++   data8 = train.data[ww8,]
++   data8$pep_core = gsub("^(.{4})(.*)$", "\\1X\\2", data8$peptide)
++   data8$start_pos = 5
++   data_new = rbind(data_new, data8)
++   
++   data8 = train.data[ww8,]
++   data8$pep_core = gsub("^(.{5})(.*)$", "\\1X\\2", data8$peptide)
++   data8$start_pos = 6
++   data_new = rbind(data_new, data8)
++   
++   # for each non-binder, randomly choose one start position
++   data_n1 = data_new[binder==1,]
++   data_n0 = data_new[binder==0,]
++   
++   data_n0$key = paste(data_n0$peptide, data_n0$cell_line, sep=":")
++   stopifnot(all(table(data_n0$key) == 3))
++   
++   dim(data_n0)
++   data_n0
++   data_n0 = data_n0[, .SD[sample(x = .N, size = 1)], by = key]
++   dim(data_n0)
++   data_n0
++   stopifnot(all(table(data_n0$key) == 1))
++   data_n0[, key:=NULL]
++   
++   data_n1$weight = 1/3
++   data_n0$weight = 1
++   
++   data_all = rbind(data_all, data_n1)
++   data_all = rbind(data_all, data_n0)
++   
++   data9 = train.data[ww9,]
++   data9$pep_core = data9$peptide
++   data9$start_pos = 1
++   data9$weight = 1
++   data_all = rbind(data_all, data9)
++   
++   for(len1 in 10:15){
++     data_l = train.data[which(train.data$length==len1),]
++     len2rm = len1 - 9
++     
++     data_new = NULL
++     for(k in 4:(len1 - 3 - (len2rm-1))){
++       data_l$pep_core = data_l$peptide
++       str_sub(data_l$pep_core, start=k, end=k+len2rm-1) = ""
++       data_l$start_pos = k
++       data_new = rbind(data_new, data_l)
++     }
++     
++     data_n1 = data_new[binder==1,]
++     data_n0 = data_new[binder==0,]
++     
++     data_n0$key = paste(data_n0$peptide, data_n0$cell_line, sep=":")
++     stopifnot(all(table(data_n0$key) == 4))
++     
++     dim(data_n0)
++     data_n0
++     data_n0 = data_n0[, .SD[sample(x = .N, size = 1)], by = key]
++     dim(data_n0)
++     data_n0
++     stopifnot(all(table(data_n0$key) == 1))
++     data_n0[, key:=NULL]
++     
++     data_n1$weight = 1/4
++     data_n0$weight = 1
++     
++     data_all = rbind(data_all, data_n1)
++     data_all = rbind(data_all, data_n0)
++   }
++   
++   print("dimension of new data")
++   print(dim(data_all))
++   print(head(data_all))
++   
++   print("length of pepcore")
++   print(table(nchar(data_all$pep_core)))
++   
++   print("table of weight vs. peptide length")
++   print(table(data_all$length, data_all$weight))
++   
++   print("table of start_pos vs. peptide length")
++   print(table(data_all$length, data_all$start_pos))
++ 
++   # add SA training data
++   dir2 = "../../../data/SA_data/by_split"
++   fnm  = sprintf("%s/train_v4_el_single_HLA_9AA_%d.txt.gz", dir2, i)
++   SA   = fread(fnm)
++   
++   head(SA)
++   colnames(SA)[3] = ("cell_line")
++   
++   data_all = rbind(data_all, SA)
++   head(data_all)
++   
++   print("Final data characteristics (MA + SA) ")
++   print(dim(data_all))
++   print(table(data_all$binder))
++   print("Number of cell lines")
++   print(length(unique(data_all$cell_line)))
++   print('Proportion of nonbinders to binders in MA data')
++   print(table(data_all$binder)[1]/table(data_all$binder)[2])
++   print(table(data_all$length))
++   
++   # Output data files 
++   dir1= "../../../data/mixPep_data"
++   
++   fnm = sprintf("%s/train_v4_el_multi_HLA_9AA_%d.txt", dir1, i)
++   fwrite(data_all, fnm, sep="\t")
++   system(sprintf("gzip %s", fnm))
++ }
+[1] "i=0"
+[1] 1399836       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1328859   70977 
+
+     8      9     10     11     12     13     14 
+219385 259805 229278 225038 156270 154926 155134 
+[1] 1399836       4
+[1] "Note: No duplicated peptide+cell_line paired observations"
+[1] "MA data distribution after duplication filtering"
+[1] 1399836       4
+
+      0       1 
+1328859   70977 
+
+     8      9     10     11     12     13     14 
+219385 259805 229278 225038 156270 154926 155134 
+[1] "dimension of new data"
+[1] 1479820       7
+    peptide binder cell_line length  pep_core start_pos    weight
+1: FDITGQDF      1    Mel-15      8 FDIXTGQDF         4 0.3333333
+2: YALTSSLV      1   Line.25      8 YALXTSSLV         4 0.3333333
+3: EESTIRHF      1   Line.34      8 EESXTIRHF         4 0.3333333
+4: SPGGVYAT      1   Line.17      8 SPGXGVYAT         4 0.3333333
+5: SKPPVISL      1      T98G      8 SKPXPVISL         4 0.3333333
+6: QHLGLEAL      1     RA957      8 QHLXGLEAL         4 0.3333333
+[1] "length of pepcore"
+
+      9 
+1479820 
+[1] "table of weight vs. peptide length"
+    
+       0.25 0.333333333333333      1
+  8       0              7782 216791
+  9       0                 0 259805
+  10  51844                 0 216317
+  11  33260                 0 216723
+  12   7840                 0 154310
+  13   4264                 0 153860
+  14   2520                 0 154504
+[1] "table of start_pos vs. peptide length"
+    
+          1      4      5      6      7
+  8       0  74934  74981  74658      0
+  9  259805      0      0      0      0
+  10      0  66997  66754  66928  67482
+  11      0  62551  62328  62316  62788
+  12      0  40591  40786  40419  40354
+  13      0  39463  39568  39630  39463
+  14      0  39101  39404  39480  39039
+Error in rbindlist(l, use.names, fill, idcol) : 
+  Item 2 has 3 columns, inconsistent with item 1 which has 7 columns. To fill missing columns use fill=TRUE.
+Calls: rbind -> rbind -> <Anonymous> -> rbindlist
+Execution halted

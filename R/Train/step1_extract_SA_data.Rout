@@ -1,0 +1,873 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #---------------------------------------------------------------------------------
+> # Step 1. Extract SA data for Training pMHCpan
+> # Note: For SA HLA-I EL peptide data from NetMHCpan-4.1
+> #   Steps: 
+> #       1. Check data from NetMHCpan-4.1 (NetMHCpan_train)
+> #       2. Extract EL data that are associated with a single HLA allele
+> #---------------------------------------------------------------------------------
+> 
+> library(data.table)
+> library(stringi)
+> library(ggplot2)
+Warning message:
+package ‘ggplot2’ was built under R version 3.6.2 
+> theme_set(theme_classic())
+> 
+> dir0 = "../../data/NetMHCpan4_1_train/"
+> 
+> #---------------------------------------------------------------------------------
+> # Check that SA EL training data is the same as in NetMHCpan-4.1
+> # # HLA = 142
+> # # binders = 218,962
+> # # nonbinders = 3,813,877
+> # Note: for NetMHCpan-4.1 data, the validation set is not provided. 
+> #---------------------------------------------------------------------------------
+> # import 5 splits of training data 
+> 
+> c0 = fread(paste0(dir0, "c000_el"))
+> c1 = fread(paste0(dir0, "c001_el"))
+> c2 = fread(paste0(dir0, "c002_el"))
+> c3 = fread(paste0(dir0, "c003_el"))
+> c4 = fread(paste0(dir0, "c004_el"))
+> 
+> dim(c0)
+[1] 2574792       3
+> c0[1:2,]
+           V1 V2         V3
+1:   LKFLPSRL  1    A20-A20
+2: YFPLAPFNQL  1 HLA-C14:02
+> 
+> # Combine all splits of data 
+> dat0 = rbind(c0, c1)
+> dat0 = rbind(dat0, c2)
+> dat0 = rbind(dat0, c3)
+> dat0 = rbind(dat0, c4)
+> dim(dat0)
+[1] 12868293        3
+> 
+> head(dat0)
+            V1 V2         V3
+1:    LKFLPSRL  1    A20-A20
+2:  YFPLAPFNQL  1 HLA-C14:02
+3:   KESKINQVF  1 HLA-B44:02
+4:   VPNAGRGLV  1      Bcell
+5:  RLWQNALLEK  1    LNT-229
+6: QFGISTPGSDL  1     H-2-Dq
+> colnames(dat0) = c("peptide", "binder", "HLA")
+> 
+> table(dat0$binder)
+
+       0        1 
+12204526   663767 
+> sort(unique(dat0$HLA))
+  [1] "A10"          "A11-A11"      "A12-A15"      "A14"          "A15-A15"     
+  [6] "A18"          "A19-A19"      "A20-A20"      "Apher1"       "Apher6"      
+ [11] "Bcell"        "CA46"         "CD165"        "CM467"        "DLA-8803401" 
+ [16] "DLA-8850101"  "DLA-8850801"  "EBL"          "Fibroblast"   "GD149"       
+ [21] "H-2-Db"       "H-2-Dd"       "H-2-Dq"       "H-2-Kb"       "H-2-Kd"      
+ [26] "H-2-Kk"       "H-2-Kq"       "H-2-Ld"       "HCC1143"      "HCC1937"     
+ [31] "HCT116"       "HEK293"       "HL-60"        "HLA-A01:01"   "HLA-A01:03"  
+ [36] "HLA-A02:01"   "HLA-A02:03"   "HLA-A02:04"   "HLA-A02:05"   "HLA-A02:06"  
+ [41] "HLA-A02:07"   "HLA-A02:14"   "HLA-A03:01"   "HLA-A03:02"   "HLA-A11:01"  
+ [46] "HLA-A23:01"   "HLA-A24:02"   "HLA-A24:06"   "HLA-A24:13"   "HLA-A25:01"  
+ [51] "HLA-A26:01"   "HLA-A26:02"   "HLA-A26:03"   "HLA-A29:02"   "HLA-A30:01"  
+ [56] "HLA-A30:02"   "HLA-A30:03"   "HLA-A30:04"   "HLA-A31:01"   "HLA-A32:01"  
+ [61] "HLA-A66:01"   "HLA-A66:02"   "HLA-A68:01"   "HLA-A68:02"   "HLA-A69:01"  
+ [66] "HLA-B07:02"   "HLA-B08:01"   "HLA-B13:01"   "HLA-B13:02"   "HLA-B14:02"  
+ [71] "HLA-B14:03"   "HLA-B15:01"   "HLA-B15:02"   "HLA-B15:03"   "HLA-B15:08"  
+ [76] "HLA-B15:09"   "HLA-B15:10"   "HLA-B15:11"   "HLA-B15:13"   "HLA-B15:16"  
+ [81] "HLA-B15:17"   "HLA-B15:18"   "HLA-B15:42"   "HLA-B18:01"   "HLA-B18:03"  
+ [86] "HLA-B27:01"   "HLA-B27:02"   "HLA-B27:03"   "HLA-B27:04"   "HLA-B27:05"  
+ [91] "HLA-B27:06"   "HLA-B27:07"   "HLA-B27:08"   "HLA-B27:09"   "HLA-B27:10"  
+ [96] "HLA-B35:01"   "HLA-B35:02"   "HLA-B35:03"   "HLA-B35:04"   "HLA-B35:06"  
+[101] "HLA-B35:08"   "HLA-B37:01"   "HLA-B38:01"   "HLA-B39:01"   "HLA-B39:05"  
+[106] "HLA-B39:06"   "HLA-B39:09"   "HLA-B39:10"   "HLA-B39:24"   "HLA-B40:01"  
+[111] "HLA-B40:02"   "HLA-B41:01"   "HLA-B41:02"   "HLA-B41:03"   "HLA-B41:04"  
+[116] "HLA-B41:05"   "HLA-B41:06"   "HLA-B42:01"   "HLA-B44:02"   "HLA-B44:03"  
+[121] "HLA-B44:05"   "HLA-B44:08"   "HLA-B44:09"   "HLA-B44:27"   "HLA-B44:28"  
+[126] "HLA-B45:01"   "HLA-B46:01"   "HLA-B47:01"   "HLA-B49:01"   "HLA-B50:01"  
+[131] "HLA-B50:02"   "HLA-B51:01"   "HLA-B51:02"   "HLA-B51:08"   "HLA-B52:01"  
+[136] "HLA-B54:01"   "HLA-B55:01"   "HLA-B55:02"   "HLA-B56:01"   "HLA-B57:01"  
+[141] "HLA-B57:02"   "HLA-B57:03"   "HLA-B58:01"   "HLA-B58:02"   "HLA-B73:01"  
+[146] "HLA-C01:02"   "HLA-C02:02"   "HLA-C03:03"   "HLA-C03:04"   "HLA-C04:01"  
+[151] "HLA-C05:01"   "HLA-C06:02"   "HLA-C07:01"   "HLA-C07:02"   "HLA-C07:04"  
+[156] "HLA-C08:02"   "HLA-C12:02"   "HLA-C12:03"   "HLA-C12:04"   "HLA-C14:02"  
+[161] "HLA-C15:02"   "HLA-C16:01"   "HLA-C17:01"   "JY"           "Line.1"      
+[166] "Line.10"      "Line.11"      "Line.12"      "Line.13"      "Line.14"     
+[171] "Line.15"      "Line.16"      "Line.17"      "Line.18"      "Line.19"     
+[176] "Line.2"       "Line.20"      "Line.21"      "Line.22"      "Line.23"     
+[181] "Line.24"      "Line.25"      "Line.26"      "Line.27"      "Line.28"     
+[186] "Line.29"      "Line.3"       "Line.30"      "Line.31"      "Line.32"     
+[191] "Line.33"      "Line.34"      "Line.35"      "Line.36"      "Line.37"     
+[196] "Line.38"      "Line.39"      "Line.4"       "Line.40"      "Line.41"     
+[201] "Line.42"      "Line.43"      "Line.44"      "Line.45"      "Line.46"     
+[206] "Line.47"      "Line.48"      "Line.49"      "Line.5"       "Line.50"     
+[211] "Line.51"      "Line.52"      "Line.53"      "Line.54"      "Line.55"     
+[216] "Line.6"       "Line.7"       "Line.8"       "Line.9"       "LNT-229"     
+[221] "Mamu-B*00801" "MAVER-1"      "MD155"        "Mel-12"       "Mel-15"      
+[226] "Mel-16"       "Mel-5"        "Mel-624"      "Mel-8"        "pat-AC2"     
+[231] "pat-C"        "pat-CELG"     "pat-CP2"      "pat-FL"       "pat-J"       
+[236] "pat-JPB3"     "pat-JT2"      "pat-M"        "pat-MA"       "pat-ML"      
+[241] "pat-NS2"      "pat-NT"       "pat-PF1"      "pat-R"        "pat-RT"      
+[246] "pat-SR"       "pat-ST"       "PD42"         "RA957"        "RPMI8226"    
+[251] "SK-Mel-5"     "T98G"         "THP-1"        "TIL1"         "TIL3"        
+[256] "U-87"        
+> 
+> # --------------------------------------------------------------------------
+> # Extract EL data that are associated with a single HLA allele
+> # two ways: 
+>     # 1: using allelelist and choosing lines with only 1 HLA
+>     # 2: using Supplementary Table 4
+>     # 3: using human HLA only 
+> # --------------------------------------------------------------------------
+> # using Allele
+> # there are some duplicated rows
+> allele.list = read.delim(sprintf("%sallelelist.txt", dir0), header=FALSE, 
++                          sep = "", fill = TRUE, as.is = TRUE)
+> dim(allele.list)
+[1] 357   2
+> allele.list = unique(allele.list)
+> dim(allele.list)
+[1] 349   2
+> 
+> names(allele.list) = c("cell_line", "hla")
+> head(allele.list)
+  cell_line                                                              hla
+1       A10                                        BoLA-3:00201,BoLA-2:01201
+2   A11-A11                                        BoLA-3:01701,BoLA-2:01801
+3   A12-A15 BoLA-1:01901,BoLA-2:00801,BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+4       A14              BoLA-1:02301,BoLA-4:02401,BoLA-6:04001,BoLA-2:02501
+5   A15-A15                           BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+6       A18                                                     BoLA-6:01301
+> 
+> allele.list[which(allele.list$cell_line == "Line.1"),]
+   cell_line                                                               hla
+25    Line.1 HLA-A01:01,HLA-A03:01,HLA-B08:01,HLA-B07:02,HLA-C07:02,HLA-C07:01
+> 
+> hla.list = strsplit(allele.list$hla, split=",")
+> n.hla    = sapply(hla.list, length)
+> table(n.hla)
+n.hla
+  1   2   3   4   5   6 
+236   4  13  13   4  79 
+> 
+> alleles = allele.list$cell_line[which(n.hla ==1)]
+> head(alleles)
+[1] "A18"          "BoLA-1:02101" "BoLA-2:00801" "BoLA-2:01201" "BoLA-4:02401"
+[6] "BoLA-6:01301"
+> length(alleles)
+[1] 236
+> 
+> # Matching SA lines with Supplementary Table 4.
+> # 8 H-2, 3 DLA, 1 Mamu, A, B, C
+> alleles0 = unique(dat0$HLA)
+> length(alleles0)
+[1] 256
+> head(alleles0)
+[1] "A20-A20"    "HLA-C14:02" "HLA-B44:02" "Bcell"      "LNT-229"   
+[6] "H-2-Dq"    
+> 
+> table(alleles0 %in% alleles)
+
+FALSE  TRUE 
+  113   143 
+> 
+> alleles1 = alleles0[grep("HLA-", alleles0, fixed=TRUE)]
+> length(alleles1)
+[1] 130
+> 
+> setdiff(intersect(alleles0, alleles), alleles1)
+ [1] "H-2-Dq"       "DLA-8803401"  "H-2-Kb"       "A18"          "H-2-Db"      
+ [6] "DLA-8850101"  "DLA-8850801"  "H-2-Kd"       "Mamu-B*00801" "H-2-Kq"      
+[11] "H-2-Kk"       "H-2-Dd"       "H-2-Ld"      
+> 
+> #alleles2 = alleles0[grep("H-2", alleles0, fixed=TRUE)]
+> #alleles2
+> #alleles3 = alleles0[grep("DLA", alleles0, fixed=TRUE)]
+> #alleles3
+> #alleles4 = alleles0[grep("Mamu", alleles0, fixed=TRUE)]
+> #alleles4
+> 
+> #alleles_sup3 = c(alleles1, alleles2, alleles3, alleles4)
+> alleles_sup3 = alleles1
+> table(alleles_sup3 %in% allele.list$cell_line)
+
+TRUE 
+ 130 
+> 
+> alleles_sa   = allele.list[which(allele.list$cell_line %in% alleles_sup3),]
+> dim(alleles_sa)
+[1] 130   2
+> 
+> write.table(alleles_sa, "../../data/SA_data/alleles_SAonly.txt", 
++             sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+> 
+> length(alleles_sup3)
+[1] 130
+> sort(table(dat0$HLA[which(dat0$HLA %in% alleles_sup3)]))
+
+HLA-A02:06 HLA-A25:01 HLA-A26:02 HLA-A26:03 HLA-A69:01 HLA-B50:02 HLA-B55:01 
+         6          6          6          6         12         12         12 
+HLA-C07:04 HLA-C12:04 HLA-B55:02 HLA-B15:42 HLA-B15:03 HLA-B44:05 HLA-B15:18 
+        12         18         29         30         34         34         35 
+HLA-B15:13 HLA-B39:05 HLA-B58:02 HLA-B52:01 HLA-A30:04 HLA-B39:10 HLA-B51:02 
+        36         47         47         48         50         56         67 
+HLA-B15:17 HLA-C12:02 HLA-A30:03 HLA-A01:03 HLA-B39:09 HLA-B57:02 HLA-A02:14 
+        78         78         79         82         94         98         99 
+HLA-B15:09 HLA-B35:06 HLA-B27:10 HLA-B42:01 HLA-B35:04 HLA-B38:01 HLA-B15:08 
+       100        115        130        130        131        134        153 
+HLA-B41:02 HLA-A03:02 HLA-A30:02 HLA-A68:01 HLA-B14:03 HLA-A30:01 HLA-B15:10 
+       157        197        217        245        260        266        277 
+HLA-B15:16 HLA-B41:05 HLA-B41:06 HLA-B47:01 HLA-A66:02 HLA-A66:01 HLA-B37:01 
+       313        332        334        366        377        384        400 
+HLA-B41:04 HLA-B35:02 HLA-B13:02 HLA-B44:08 HLA-B13:01 HLA-B41:03 HLA-B44:28 
+       505        727        743        772        968       1057       1093 
+HLA-B18:03 HLA-B44:09 HLA-B44:27 HLA-A23:01 HLA-B73:01 HLA-B15:11 HLA-B39:24 
+      2289       2336       2582       2641       3293       3347       3452 
+HLA-A26:01 HLA-B35:08 HLA-B35:03 HLA-B49:01 HLA-A24:06 HLA-A02:05 HLA-A24:13 
+      3683       3845       4092       4148       4341       4475       5270 
+HLA-B14:02 HLA-C07:01 HLA-B39:06 HLA-C17:01 HLA-B41:01 HLA-B50:01 HLA-B51:08 
+      5945       6776       7577       8587      10164      11212      12757 
+HLA-A32:01 HLA-B56:01 HLA-B45:01 HLA-B27:03 HLA-B39:01 HLA-B54:01 HLA-B18:01 
+     13676      14531      16016      17354      20802      21892      22995 
+HLA-C12:03 HLA-A31:01 HLA-B27:06 HLA-B27:04 HLA-C07:02 HLA-C03:03 HLA-C02:02 
+     24495      27539      27663      28515      28836      31071      31874 
+HLA-C15:02 HLA-C14:02 HLA-B27:08 HLA-A68:02 HLA-B27:07 HLA-B35:01 HLA-C01:02 
+     34047      34465      35916      38139      41149      41239      41465 
+HLA-C16:01 HLA-A02:03 HLA-C04:01 HLA-B46:01 HLA-C08:02 HLA-B15:02 HLA-B27:02 
+     42603      44413      46055      47700      47930      47965      48541 
+HLA-B40:01 HLA-A11:01 HLA-C06:02 HLA-C03:04 HLA-B27:01 HLA-B58:01 HLA-B51:01 
+     49883      53824      57238      59096      62976      65852      75169 
+HLA-B57:03 HLA-B44:02 HLA-B44:03 HLA-A03:01 HLA-A02:04 HLA-A01:01 HLA-B08:01 
+     76422      79200      79392      80196      84438      84823      86437 
+HLA-B27:09 HLA-C05:01 HLA-B27:05 HLA-A02:07 HLA-A24:02 HLA-B15:01 HLA-B40:02 
+     93384      95874     102116     107169     118743     145365     145817 
+HLA-A29:02 HLA-B57:01 HLA-B07:02 HLA-A02:01 
+    181136     184773     201038     265252 
+> 
+> dat1 = dat0[which(dat0$HLA %in% alleles_sup3),]
+> length(unique(dat1$HLA))
+[1] 130
+> dim(dat1)
+[1] 3679405       3
+> head(dat1)
+       peptide binder        HLA
+1:  YFPLAPFNQL      1 HLA-C14:02
+2:   KESKINQVF      1 HLA-B44:02
+3: QPHDPLVPLSA      1 HLA-B54:01
+4: RTIADSLINSF      1 HLA-B57:03
+5:   EEKTIIKKL      1 HLA-B44:03
+6:  LLDELPQSVL      1 HLA-C08:02
+> 
+> length(unique(dat1$HLA))
+[1] 130
+> table(dat1$binder)
+
+      0       1 
+3481858  197547 
+> tb1 = table(dat1$binder, dat1$HLA)
+> dim(tb1)
+[1]   2 130
+> tb1[,1:5]
+   
+    HLA-A01:01 HLA-A01:03 HLA-A02:01 HLA-A02:03 HLA-A02:04
+  0      77667         75     252227      42540      81283
+  1       7156          7      13025       1873       3155
+> 
+> summary(tb1[2,]/tb1[1,])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+0.03705 0.05303 0.06669 0.08762 0.10552 0.20833 
+> 
+> df1 = data.frame(n_sample = as.numeric(table(dat1$HLA)))
+> g1 = ggplot(df1, aes(x=log10(n_sample))) + xlab("log10(# of peptides per HLA)") + 
++   geom_histogram(color="darkblue", fill="lightblue", bins=20)
+> pdf("figures/hist_n_sample_SA.pdf", width=3, height=2)
+> g1
+> dev.off()
+null device 
+          1 
+> 
+> summary(df1$n_sample)
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+     6.0    131.8   3968.5  28303.1  41408.5 265252.0 
+> 
+> # --------------------------------------------------------------------------
+> # remove duplicated peptides within the same HLA
+> # --------------------------------------------------------------------------
+> 
+> # check for duplication for peptide+HLA, remove all instances except original
+> if(sum(duplicated(dat1[, c("peptide", "HLA")]))>0){
++   temp1 = dat1[, c("peptide", "HLA")]
++   dat1  = dat1[!duplicated(temp1),]
++   print(paste("Removed", sum(duplicated(temp1)),
++               "duplicated peptide+HLA pairs in training.", sep = " "))
++ }else{
++   print("Note: no duplicated peptide+HLA pairs in training" )
++ }
+[1] "Note: no duplicated peptide+HLA pairs in training"
+> 
+> # check for peptides shared across HLA alleles
+> 
+> wdup = duplicated(dat1$peptide) | duplicated(dat1$peptide, fromLast=TRUE)
+> ndup = sum(wdup)
+> ndup
+[1] 166728
+> 
+> table(dat1[wdup,]$binder)
+
+    0     1 
+90593 76135 
+> 
+> dat1$length = nchar(dat1$peptide)
+> dim(dat1)
+[1] 3679405       4
+> head(dat1)
+       peptide binder        HLA length
+1:  YFPLAPFNQL      1 HLA-C14:02     10
+2:   KESKINQVF      1 HLA-B44:02      9
+3: QPHDPLVPLSA      1 HLA-B54:01     11
+4: RTIADSLINSF      1 HLA-B57:03     11
+5:   EEKTIIKKL      1 HLA-B44:03      9
+6:  LLDELPQSVL      1 HLA-C08:02     10
+> 
+> tapply(dat1$binder, dat1$length, table)
+$`8`
+
+     0      1 
+528081  14236 
+
+$`9`
+
+     0      1 
+527626 105971 
+
+$`10`
+
+     0      1 
+528553  37692 
+
+$`11`
+
+     0      1 
+528553  23702 
+
+$`12`
+
+     0      1 
+472781   9139 
+
+$`13`
+
+     0      1 
+463348   4552 
+
+$`14`
+
+     0      1 
+420760   2231 
+
+$`15`
+
+    0     1 
+12156    24 
+
+> 
+> rm(dat1)
+> 
+> gc()
+            used  (Mb) gc trigger   (Mb) limit (Mb)  max used   (Mb)
+Ncells  12802082 683.8   18716000  999.6         NA  13592226  726.0
+Vcells 111810322 853.1  192765604 1470.7      16384 192720559 1470.4
+> 
+> set.seed(123)
+> 
+> # --------------------------------------------------------------------------
+> # format and save training data for each split
+> # --------------------------------------------------------------------------
+> for(i in 0:4){
++   train.data0 = fread(sprintf("%sc00%d_el", dir0, i))
++   # test.data0  = fread(sprintf("%sc00%d_el", dir0, i))
++   
++   print("\n-----------------------------------------------------\n")
++   print(sprintf("i=%d", i))
++   print("\n-----------------------------------------------------\n")
++   
++   names(train.data0)  = c("peptide", "binder", "HLA")
++   
++   print(table(alleles_sup3 %in% train.data0$HLA))
++   
++   #subset data to SA alleles only 
++   train.data0 = train.data0[which(train.data0$HLA %in% alleles_sup3),]
++   table(train.data0$HLA)
++   table(train.data0$binder)
++   #print(table(alleles %in% test.data0$HLA))
++   
++   t1 = table(stri_length(train.data0$peptide), train.data0$binder)
++   t1 = cbind(t1, t1[,2]/rowSums(t1))
++   #print(t1)
++   
++   ww1 = train.data0$HLA %in% alleles_sup3 & 
++     stri_length(train.data0$peptide)<=15 &
++     stri_length(train.data0$peptide)>=8
++ 
++   print(paste("removed", toString(sum(stri_length(train.data0$peptide)<8)), 
++               "and", toString(sum(stri_length(train.data0$peptide)>15)), 
++               "training peptides with length <8 or >15, respectively"))
++ 
++   train.data = train.data0[which(ww1),]
++   print(table(train.data$binder))
++   print(table(alleles_sup3 %in% train.data$HLA))
++ 
++   #check for duplication for peptide+HLA, remove all instances except original
++   print(dim(train.data))
++   if(sum(duplicated(train.data[, c("peptide", "HLA")]))>0){
++     temp1 = train.data[, c("peptide", "HLA")]
++     train.data = train.data[!duplicated(temp1),]
++     print(paste("Removed", sum(duplicated(temp1)),
++                 "duplicated peptide+HLA paired observations in training."))
++   }else{
++     print("Note: No duplicated peptide+HLA paired observations in training")
++   }
++   
++   #create 15 length representation for training data 
++   train.data$length = nchar(train.data$peptide)
++   
++   print("--> Post-filtering SA distributions by length and binder <--")
++   print(table(train.data$length))
++   print(table(train.data$binder))
++   print("--> Post-filtering SA ratio of nonbinders:binders <--")
++   print(round(table(train.data$binder)[1]/table(train.data$binder)[2],2))
++   
++   train.data$peprep = NA
++   ww8  = which(train.data$length==8)
++   ww9  = which(train.data$length==9)
++   ww10 = which(train.data$length==10)
++   ww11 = which(train.data$length==11)
++   ww12 = which(train.data$length==12)
++   ww13 = which(train.data$length==13)
++   ww14 = which(train.data$length==14)
++   ww15 = which(train.data$length==15)
++   
++   train.data$peprep[ww8] = paste0(
++     substr(train.data$peptide[ww8], 1, 4), "XXXXXXX", 
++     substr(train.data$peptide[ww8], 5, 8))
++   
++   train.data$peprep[ww9] = paste0(
++     substr(train.data$peptide[ww9], 1, 4), "XXX", 
++     substr(train.data$peptide[ww9], 5, 5), "XXX", 
++     substr(train.data$peptide[ww9], 6, 9))
++   
++   train.data$peprep[ww10] = paste0(
++     substr(train.data$peptide[ww10], 1, 4), "XXX", 
++     substr(train.data$peptide[ww10], 5, 6), "XX", 
++     substr(train.data$peptide[ww10], 7, 10))
++   
++   train.data$peprep[ww11] = paste0(
++     substr(train.data$peptide[ww11], 1, 4), "XX", 
++     substr(train.data$peptide[ww11], 5, 7), "XX", 
++     substr(train.data$peptide[ww11], 8, 11))
++   
++   train.data$peprep[ww12] = paste0(
++     substr(train.data$peptide[ww12], 1, 4), "XX", 
++     substr(train.data$peptide[ww12], 5, 8), "X", 
++     substr(train.data$peptide[ww12], 9, 12))
++   
++   train.data$peprep[ww13] = paste0(
++     substr(train.data$peptide[ww13], 1, 4), "X", 
++     substr(train.data$peptide[ww13], 5, 9), "X", 
++     substr(train.data$peptide[ww13], 10, 13))
++   
++   train.data$peprep[ww14] = paste0(
++     substr(train.data$peptide[ww14], 1, 4),  "X", 
++     substr(train.data$peptide[ww14], 5, 14))
++   
++   train.data$peprep[ww15] = train.data$peptide[ww15]
++ 
++   sum(is.na(train.data$peprep))
++   
++   # Create data that is 8-11 peptides and 12-15 peptides only 
++   train.data8  = train.data[which(train.data$length>=8 & 
++                                     train.data$length<=11),]
++   train.data12 = train.data[which(train.data$length >= 12 & 
++                                     train.data$length <=15)]
++   
++   print("ratio of nonbinders:binders in 8-11")
++   print(round(table(train.data8$binder)[1]/table(train.data8$binder)[2],2))
++   
++   print(table(train.data8$binder))
++   print("ratio of nonbinders:binders in 12-15")
++   print(round(table(train.data12$binder)[1]/table(train.data12$binder)[2],2))
++   print(table(train.data12$binder))
++   
++   # Output data files 
++   dir1= "../../data/SA_data/by_split"
++   
++   cols2kp = c("peprep", "binder", "HLA")
++   colsnms = c("peptide", "binder", "HLA")
++   
++   fnm = sprintf("%s/train_v4_el_single_HLA_%d.txt", dir1, i)
++   write.table(train.data[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   fnm = sprintf("%s/train_v4_el_8to11_single_HLA_%d.txt", dir1, i)
++   write.table(train.data8[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   fnm = sprintf("%s/train_v4_el_12to15_single_HLA_%d.txt", dir1, i)
++   write.table(train.data12[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   # Create dataset without any duplications (same peptide binding to 
++   # at least 2 different HLA)
++   # check for any duplicated peptides, remove all instances INCLUDING original
++   print("Number of duplicated peptides")
++   ndup = sum(duplicated(train.data$peptide) | 
++                duplicated(train.data$peptide, fromLast=TRUE))
++   print(ndup)
++   temp = train.data[duplicated(train.data$peptide) | 
++                       duplicated(train.data$peptide, fromLast=TRUE),]
++   print(dim(temp))
++   #b = as.data.frame(table(temp$peptide, temp$HLA))
++   #c = b[which(b$Freq>0), ]
++   #e = c[order(c$Var1),]
++   #write.table(e, "TCR_HLA_table_train.txt", sep = " ", 
++   #            quote= FALSE, row.names = TRUE, col.names = TRUE)
++   #system("gzip TCR_HLA_table_train.txt")
++   #table(table(e$Var1))
++ 
++ }
+[1] "\n-----------------------------------------------------\n"
+[1] "i=0"
+[1] "\n-----------------------------------------------------\n"
+
+FALSE  TRUE 
+    2   128 
+[1] "removed 0 and 0 training peptides with length <8 or >15, respectively"
+
+     0      1 
+695757  39574 
+
+FALSE  TRUE 
+    2   128 
+[1] 735331      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "--> Post-filtering SA distributions by length and binder <--"
+
+     8      9     10     11     12     13     14     15 
+108328 126522 113316 110764  96276  93058  84564   2503 
+
+     0      1 
+695757  39574 
+[1] "--> Post-filtering SA ratio of nonbinders:binders <--"
+    0 
+17.58 
+[1] "ratio of nonbinders:binders in 8-11"
+    0 
+11.58 
+
+     0      1 
+422462  36468 
+[1] "ratio of nonbinders:binders in 12-15"
+    0 
+87.99 
+
+     0      1 
+273295   3106 
+[1] "Number of duplicated peptides"
+[1] 33483
+[1] 33483     5
+[1] "\n-----------------------------------------------------\n"
+[1] "i=1"
+[1] "\n-----------------------------------------------------\n"
+
+FALSE  TRUE 
+    1   129 
+[1] "removed 0 and 0 training peptides with length <8 or >15, respectively"
+
+     0      1 
+694900  39243 
+
+FALSE  TRUE 
+    1   129 
+[1] 734143      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "--> Post-filtering SA distributions by length and binder <--"
+
+     8      9     10     11     12     13     14     15 
+108579 126436 112844 109893  96015  93726  84302   2348 
+
+     0      1 
+694900  39243 
+[1] "--> Post-filtering SA ratio of nonbinders:binders <--"
+    0 
+17.71 
+[1] "ratio of nonbinders:binders in 8-11"
+    0 
+11.68 
+
+     0      1 
+421649  36103 
+[1] "ratio of nonbinders:binders in 12-15"
+    0 
+87.02 
+
+     0      1 
+273251   3140 
+[1] "Number of duplicated peptides"
+[1] 33180
+[1] 33180     5
+[1] "\n-----------------------------------------------------\n"
+[1] "i=2"
+[1] "\n-----------------------------------------------------\n"
+
+FALSE  TRUE 
+    3   127 
+[1] "removed 0 and 0 training peptides with length <8 or >15, respectively"
+
+     0      1 
+696420  39625 
+
+FALSE  TRUE 
+    3   127 
+[1] 736045      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "--> Post-filtering SA distributions by length and binder <--"
+
+     8      9     10     11     12     13     14     15 
+108322 126229 113366 110632  96478  93934  84614   2470 
+
+     0      1 
+696420  39625 
+[1] "--> Post-filtering SA ratio of nonbinders:binders <--"
+    0 
+17.58 
+[1] "ratio of nonbinders:binders in 8-11"
+    0 
+11.63 
+
+     0      1 
+422241  36308 
+[1] "ratio of nonbinders:binders in 12-15"
+    0 
+82.66 
+
+     0      1 
+274179   3317 
+[1] "Number of duplicated peptides"
+[1] 33171
+[1] 33171     5
+[1] "\n-----------------------------------------------------\n"
+[1] "i=3"
+[1] "\n-----------------------------------------------------\n"
+
+TRUE 
+ 130 
+[1] "removed 0 and 0 training peptides with length <8 or >15, respectively"
+
+     0      1 
+698735  39462 
+
+TRUE 
+ 130 
+[1] 738197      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "--> Post-filtering SA distributions by length and binder <--"
+
+     8      9     10     11     12     13     14     15 
+108480 127532 113749 110964  96650  93592  84717   2513 
+
+     0      1 
+698735  39462 
+[1] "--> Post-filtering SA ratio of nonbinders:binders <--"
+    0 
+17.71 
+[1] "ratio of nonbinders:binders in 8-11"
+    0 
+11.71 
+
+     0      1 
+424476  36249 
+[1] "ratio of nonbinders:binders in 12-15"
+    0 
+85.36 
+
+     0      1 
+274259   3213 
+[1] "Number of duplicated peptides"
+[1] 33668
+[1] 33668     5
+[1] "\n-----------------------------------------------------\n"
+[1] "i=4"
+[1] "\n-----------------------------------------------------\n"
+
+FALSE  TRUE 
+    2   128 
+[1] "removed 0 and 0 training peptides with length <8 or >15, respectively"
+
+     0      1 
+696046  39643 
+
+FALSE  TRUE 
+    2   128 
+[1] 735689      3
+[1] "Note: No duplicated peptide+HLA paired observations in training"
+[1] "--> Post-filtering SA distributions by length and binder <--"
+
+     8      9     10     11     12     13     14     15 
+108608 126878 112970 110002  96501  93590  84794   2346 
+
+     0      1 
+696046  39643 
+[1] "--> Post-filtering SA ratio of nonbinders:binders <--"
+    0 
+17.56 
+[1] "ratio of nonbinders:binders in 8-11"
+    0 
+11.57 
+
+     0      1 
+421985  36473 
+[1] "ratio of nonbinders:binders in 12-15"
+    0 
+86.45 
+
+     0      1 
+274061   3170 
+[1] "Number of duplicated peptides"
+[1] 33226
+[1] 33226     5
+> 
+> # --------------------------------------------------------------------------
+> # Create Final Training and Validation file
+> # --------------------------------------------------------------------------
+> train_fin = NULL
+> # create SA training data 
+> dir1= "../../data/SA_data/by_split"
+> dir2= "../../data/SA_data"
+> 
+> #train data
+> for(i in 0:3){
++   temp = fread(sprintf("%s/train_v4_el_single_HLA_%d.txt.gz", dir1, i))
++   train_fin = rbind(train_fin, temp)
++ }
+> fnm = sprintf("%s/train_v4_el_single_HLA.txt", dir2)
+> write.table(train_fin, fnm, sep="\t", quote = FALSE, 
++             row.names = FALSE, col.names = TRUE)
+> system(sprintf("gzip %s", fnm))
+> 
+> #validation data
+> temp4 = fread(sprintf("%s/train_v4_el_single_HLA_4.txt.gz", dir1))
+> fnm = sprintf("%s/validate_v4_el_single_HLA.txt", dir2)
+> 
+> write.table(temp4, fnm, sep="\t", quote = FALSE, 
++             row.names = FALSE, col.names = colsnms)
+> system(sprintf("gzip %s", fnm))
+> 
+> train_fin = fread(sprintf("%s/train_v4_el_single_HLA.txt.gz", dir2))
+> table(train_fin$binder)
+
+      0       1 
+2785812  157904 
+> length(unique(train_fin$HLA))
+[1] 130
+> 
+> validate_fin = fread(sprintf("%s/validate_v4_el_single_HLA.txt.gz", dir2))
+> table(validate_fin$binder) 
+
+     0      1 
+696046  39643 
+> length(unique(validate_fin$HLA))
+[1] 128
+> 
+> table(train_fin$binder) + table(validate_fin$binder)
+
+      0       1 
+3481858  197547 
+> 
+> # --------------------------------------------------------------------------
+> # format MHC_pseudo.dat
+> # --------------------------------------------------------------------------
+> mhc = read.delim(paste0(dir0, "MHC_pseudo.dat"), sep = "", header = FALSE)
+> head(mhc)
+           V1                                 V2
+1 BoLA-100901 YYSMYREISENVYGSNLYLLYRDYTWEYLNYRWY
+2 BoLA-100902 YYSEYREISENVYESNLYLLYRDYTWEYLNYRWY
+3 BoLA-101901 YHTKYREISENVYGSNLYYDYDYYTWAVFNYRGY
+4 BoLA-102001 YHTKYREISENVYGSNLYFLYMDYTWAVFNYRGY
+5 BoLA-102101 YYTKYREISENVYGSNLYFQFRYYTWADFNYEGY
+6 BoLA-102301 YYSEYREISENVYESNLYIAYSDYTWEYLNYRWY
+> 
+> write.table(mhc, "../../data/NetMHCpan4_1_train/MHC_pseudo.txt", sep = " ", 
++             row.names = FALSE, col.names = FALSE, quote = FALSE)
+> 
+> # --------------------------------------------------------------------------
+> # format allelist
+> # --------------------------------------------------------------------------
+> allist = read.delim(paste0(dir0, "allelelist"), sep = "", header = FALSE)
+> dim(allist)
+[1] 357   2
+> head(allist)
+       V1                                                               V2
+1     A10                                        BoLA-3:00201,BoLA-2:01201
+2 A11-A11                                        BoLA-3:01701,BoLA-2:01801
+3 A12-A15 BoLA-1:01901,BoLA-2:00801,BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+4     A14              BoLA-1:02301,BoLA-4:02401,BoLA-6:04001,BoLA-2:02501
+5 A15-A15                           BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+6     A18                                                     BoLA-6:01301
+> 
+> write.table(allist, "../../data/NetMHCpan4_1_train/allelelist.txt", sep = " ", 
++             row.names = FALSE, col.names = FALSE, quote = FALSE)
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] ggplot2_3.3.4     stringi_1.4.3     data.table_1.12.2
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.2        magrittr_1.5      tidyselect_1.1.1  munsell_0.5.0    
+ [5] colorspace_1.4-1  R6_2.4.0          rlang_0.4.11      fansi_0.4.0      
+ [9] dplyr_1.0.7       tools_3.6.1       grid_3.6.1        gtable_0.3.0     
+[13] R.oo_1.24.0       utf8_1.1.4        withr_2.1.2       ellipsis_0.3.2   
+[17] digest_0.6.20     tibble_3.1.2      lifecycle_1.0.0   crayon_1.3.4     
+[21] purrr_0.3.3       R.utils_2.10.1    vctrs_0.3.8       glue_1.4.2       
+[25] labeling_0.3      compiler_3.6.1    pillar_1.6.1      R.methodsS3_1.8.1
+[29] generics_0.1.0    scales_1.0.0      pkgconfig_2.0.2  
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+151.664   7.889 174.130 

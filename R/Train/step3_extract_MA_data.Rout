@@ -1,0 +1,1041 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #---------------------------------------------------------------------------------
+> # Step 4. extract MA data for MixPep (NetMHCpan-4.1)
+> # Note: For MA HLA-I EL peptide data 
+> #---------------------------------------------------------------------------------
+> library(data.table)
+> library(stringi)
+> library(stringr)
+> library(ggplot2)
+Warning message:
+package ‘ggplot2’ was built under R version 3.6.2 
+> theme_set(theme_classic())
+> 
+> dir0 = "../../data/NetMHCpan4_1_train"
+> 
+> # --------------------------------------------------------------------------
+> # Extract EL data that are associated with a multiple HLA alleles
+> # --------------------------------------------------------------------------
+> # this file has been modified to replace tab with space in 'step1'
+> allele.list = fread(sprintf("%s/allelelist.txt", dir0), header=FALSE)
+> dim(allele.list)
+[1] 357   2
+> names(allele.list) = c("cell_line", "hla")
+> head(allele.list)
+   cell_line                                                              hla
+1:       A10                                        BoLA-3:00201,BoLA-2:01201
+2:   A11-A11                                        BoLA-3:01701,BoLA-2:01801
+3:   A12-A15 BoLA-1:01901,BoLA-2:00801,BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+4:       A14              BoLA-1:02301,BoLA-4:02401,BoLA-6:04001,BoLA-2:02501
+5:   A15-A15                           BoLA-1:00901,BoLA-4:02401,BoLA-2:02501
+6:       A18                                                     BoLA-6:01301
+> 
+> #remove duplciations 
+> allele.list[duplicated(allele.list$cell_line),]
+       cell_line           hla
+1:  BoLA-6:01301  BoLA-6:01301
+2: Mamu-A1*00101 Mamu-A1*00101
+3: Mamu-A1*00201 Mamu-A1*00201
+4: Mamu-A1*01101 Mamu-A1*01101
+5:  Mamu-B*00101  Mamu-B*00101
+6:  Mamu-B*00301  Mamu-B*00301
+7:  Mamu-B*00401  Mamu-B*00401
+8:  Mamu-B*00801  Mamu-B*00801
+> allele.list[which(allele.list$cell_line=="BoLA-6:01301"),]
+      cell_line          hla
+1: BoLA-6:01301 BoLA-6:01301
+2: BoLA-6:01301 BoLA-6:01301
+> allele.list = allele.list[!duplicated(allele.list$cell_line),]
+> dim(allele.list)
+[1] 349   2
+> 
+> #table of cell_lines
+> hla.list = strsplit(allele.list$hla, split=",")
+> n.hla = sapply(hla.list, length)
+> table(n.hla)
+n.hla
+  1   2   3   4   5   6 
+236   4  13  13   4  79 
+> table(n.hla > 1)
+
+FALSE  TRUE 
+  236   113 
+> 
+> cell.line = allele.list$cell_line[n.hla > 1]
+> 
+> # --------------------------------------------------------------------------
+> # Check MA data matches Supplementary Table 1 and 5
+> # --------------------------------------------------------------------------
+> # import all data
+> c0 = fread(paste0(dir0, "/c000_el"))
+> c1 = fread(paste0(dir0, "/c001_el"))
+> c2 = fread(paste0(dir0, "/c002_el"))
+> c3 = fread(paste0(dir0, "/c003_el"))
+> c4 = fread(paste0(dir0, "/c004_el"))
+> 
+> # combine all data 
+> dat0 = rbind(c0, c1)
+> dat0 = rbind(dat0, c2)
+> dat0 = rbind(dat0, c3)
+> dat0 = rbind(dat0, c4)
+> dim(dat0)
+[1] 12868293        3
+> dat0[1:2,]
+           V1 V2         V3
+1:   LKFLPSRL  1    A20-A20
+2: YFPLAPFNQL  1 HLA-C14:02
+> 
+> colnames(dat0) = c("peptide", "binder", "HLA")
+> 
+> # 1) remove SA lines
+> alleles0 = unique(dat0$HLA)
+> head(alleles0)
+[1] "A20-A20"    "HLA-C14:02" "HLA-B44:02" "Bcell"      "LNT-229"   
+[6] "H-2-Dq"    
+> 
+> alleles1 = alleles0[grep("HLA-", alleles0, fixed=TRUE)]
+> length(alleles1)
+[1] 130
+> alleles2 = alleles0[grep("H-2", alleles0, fixed=TRUE)]
+> alleles2
+[1] "H-2-Dq" "H-2-Kb" "H-2-Db" "H-2-Kd" "H-2-Kq" "H-2-Kk" "H-2-Dd" "H-2-Ld"
+> alleles3 = alleles0[grep("DLA", alleles0, fixed=TRUE)]
+> alleles3
+[1] "DLA-8803401" "DLA-8850101" "DLA-8850801"
+> alleles4 = alleles0[grep("Mamu", alleles0, fixed=TRUE)]
+> alleles4
+[1] "Mamu-B*00801"
+> 
+> #remove cell-lines
+> alleles5 = c("A10", "A11-A11", "A12-A15", "A14", "A15-A15", "A18", 
++              "A19-A19", "A20-A20", "EBL")
+> 
+> 
+> alleles_sup3 = c(alleles1, alleles2, alleles3, alleles4, alleles5)
+> length(alleles_sup3)
+[1] 151
+> 
+> cell.line = allele.list$cell_line[which(!allele.list$cell_line %in% alleles_sup3)]
+> length(cell.line)
+[1] 198
+> 
+> dat1 = dat0[which(dat0$HLA %in% cell.line),]
+> length(unique(dat1$HLA))
+[1] 105
+> table(dat1$binder)
+
+      0       1 
+6636734  354287 
+> 
+> allele.list1 = allele.list[which(allele.list$cell_line %in% dat1$HLA),]
+> dim(allele.list1)
+[1] 105   2
+> 
+> hla.list1 = strsplit(allele.list1$hla, split=",")
+> n.hla = sapply(hla.list1, length)
+> table(n.hla)
+n.hla
+ 3  4  5  6 
+12 12  2 79 
+> 
+> table(dat0$HLA[which(dat0$HLA %in% cell.line)])
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+    129402      41736     232914      64924     138102     191826     127331 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+    217949      72282     107231      97296      91543     122178      63683 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      6054      25662      61804      28998       7633       3084      12636 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      5859      31740      23212       4186      11077      47344      19894 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+     38141      18452       9389      47770       5213       8591      11639 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+     45260      37298       5343      41126       8947      19921      67374 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      7802      60156      14536      47053      38259      24347      45491 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+     25519       9104       1474      25476      35979      54453       3242 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+     45002      23173      29165       5209      10089       3440      33039 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      7863      40567      24905      14144      25458      30393     188055 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+    178991     112323      92106     416346     275880     111534      51409 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+    125163      33521      52724      76083      38664      77995      45017 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+     37206      31036      55704      73520      58373      15836      55394 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     91472      51506      52336      60023      28206      51234     243444 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+    117632      67781     225827     148280     145626     214737     252655 
+> length(unique(dat0$HLA[which(dat0$HLA %in% cell.line)]))
+[1] 105
+> 
+> 
+> df1 = data.frame(n_sample = as.numeric(table(dat1$HLA)))
+> g1 = ggplot(df1, aes(x=log10(n_sample))) + xlab("log10(# of peptides per sample)") + 
++   geom_histogram(color="darkblue", fill="lightblue", bins=20)
+> pdf("figures/hist_n_sample_MA.pdf", width=3, height=2)
+> g1
+> dev.off()
+null device 
+          1 
+> 
+> summary(df1$n_sample)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   1474   19921   45002   66581   77995  416346 
+> 
+> # --------------------------------------------------------------------------
+> # create MA training dataset
+> # --------------------------------------------------------------------------
+> set.seed(1999)
+> 
+> cell.line = allele.list$cell_line[which(!allele.list$cell_line %in% alleles_sup3)]
+> length(cell.line)
+[1] 198
+> 
+> #cell.lineMA = allele.list$cell_line[n.hla > 1]
+> 
+> for(i in 0:4){
++   train.data0 = fread(sprintf("%s/c00%d_el", dir0, i))
++ 
++   names(train.data0) = c("peptide", "binder", "cell_line")
++   #print(dim(train.data0))
++   if(nrow(train.data0)==0){
++     print("ERROR; NO DATA in given file")
++     break
++   }
++   
++   #subset data to cell lines in allele.list
++   train.data = train.data0[which(train.data0$cell_line %in% cell.line),]
++   #print(dim(train.data))
++   if(nrow(train.data)==0){
++     print("ERROR: NO data in given cell lines")
++     break
++   }
++   
++   table(train.data$cell_line)
++   
++   table(train.data$binder)
++   
++   print(sprintf("i=%d", i))
++   print(dim(train.data))
++   
++   #Extrat peptides of length 8-15
++   ww1 = train.data$cell_line %in% cell.line & stri_length(train.data$peptide)<=15 &
++     stri_length(train.data$peptide)>=8
++   
++   if(sum(ww1)==0){
++     print("ERROR: NO Peptides of length 8 - 15")
++     break
++   }
++   
++   train.data = train.data[which(ww1),]
++   train.data$length = nchar(train.data$peptide)
++   
++   print('MA data distribution before duplication filtering')
++   print(table(train.data$binder))
++   print(table(train.data$cell_line))
++   print(table(train.data$length))
++   
++   #check for duplication for peptide+HLA, remove all instances except original in MA data
++   print(dim(train.data))
++   if(sum(duplicated(train.data[, c("peptide", "cell_line")]))>0){
++     temp1 = train.data[, c("peptide", "cell_line")]
++     train.data = train.data[!duplicated(temp1),]
++     print(paste("Removed", sum(duplicated(temp1)),
++                 "duplicated peptide+cell_line paired observations in training. 
++                 Note: may need to confirm peptide+cell_line pair is not binder and nonbinder", sep = " "))
++     # REMOVE PEPTIDES Considered binder and nonbinder!!!!!!!
++   }else{
++     print("Note: No duplicated peptide+cell_line paired observations in training" )
++   }
++   
++   # DO NOT NEED TO check for any duplicated peptides binding to multiple cell lines
++   
++   #print(table(train.data$binder))
++   #print(length(unique(train.data$cell_line)))
++   #print(table(train.data$cell_line))
++   #print(table(train.data$binder, train.data$cell_line))
++ 
++   print('MA data distribution after duplication filtering')
++   print(dim(train.data))
++   print(table(train.data$binder))
++   print(table(train.data$cell_line))
++   print(table(train.data$pep_length))
++   
++   
++   #create 15 length representation for training data 
++   #print(table(train.data$cell_line))
++   print(table(train.data$length))
++   train.data$peprep = NA
++   train.data$peprep[which(train.data$length==8)] = paste(
++     substr(train.data$peptide[which(train.data$length==8)], 1, 4), "XXXXXXX", 
++     substr(train.data$peptide[which(train.data$length==8)], 5, 8), sep="")
++   
++   train.data$peprep[which(train.data$length==9)] = paste(
++     substr(train.data$peptide[which(train.data$length==9)], 1, 4), "XXX", 
++     substr(train.data$peptide[which(train.data$length==9)], 5, 5), 
++     "XXX", substr(train.data$peptide[which(train.data$length==9)], 6, 9),
++     sep="")
++   
++   train.data$peprep[which(train.data$length==10)] = paste(
++     substr(train.data$peptide[which(train.data$length==10)], 1, 4), "XXX",
++     substr(train.data$peptide[which(train.data$length==10)], 5, 6), "XX",
++     substr(train.data$peptide[which(train.data$length==10)], 7, 10), sep="")
++   
++   train.data$peprep[which(train.data$length==11)] = paste(
++     substr(train.data$peptide[which(train.data$length==11)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==11)], 5, 7), "XX",
++     substr(train.data$peptide[which(train.data$length==11)], 8, 11), sep="")
++   
++   train.data$peprep[which(train.data$length==12)]=paste(
++     substr(train.data$peptide[which(train.data$length==12)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==12)], 5, 8), "X",
++     substr(train.data$peptide[which(train.data$length==12)], 9, 12), sep="")
++   
++   train.data$peprep[which(train.data$length==13)]=paste(
++     substr(train.data$peptide[which(train.data$length==13)], 1, 4), "X", 
++     substr(train.data$peptide[which(train.data$length==13)], 5, 9), "X",
++     substr(train.data$peptide[which(train.data$length==13)], 10, 13), sep="")
++   
++   train.data$peprep[which(train.data$length==14)] = paste(
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 1, 4), "X", 
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 5, 14), sep="")
++   
++   train.data$peprep[which(train.data$length==15)]=
++     train.data$peptide[which(train.data$length==15)]
++   
++   sum(is.na(train.data$peprep))
++   
++   print(table(train.data$binder))
++   print('Proportion of nonbinders to binders in MA data')
++   print(table(train.data$binder)[1]/table(train.data$binder)[2])
++   head(train.data)
++   
++   # Output data files 
++   dir1= "../../data/MA_data"
++   
++   cols2kp = c("peprep", "binder", "cell_line")
++   colsnms = c("peptide", "binder", "cell_line")
++   
++   fnm = sprintf("%s/train_v4_el_multi_only_HLA_%d.txt", dir1, i)
++   write.table(train.data[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   # add SA training data
++   SA = fread(sprintf("../../data/SA_data/by_split/train_v4_el_single_HLA_%d.txt.gz", i))
++   
++   head(SA)
++   colnames(SA) = c("peprep", "binder", "cell_line")
++   SA$length = nchar(str_replace_all(SA$peprep, "X", ""))
++   print("SA training data")
++   print(dim(SA))
++   print(table(SA$binder))
++   print(length(unique(SA$cell_line)))
++   print(table(SA$length))
++   
++   train.datasub = train.data[,c("peprep", "binder", "cell_line", "length")]
++   
++   train.data.fin = rbind(train.datasub, SA)
++   head(train.data.fin)
++   
++   print("Final data characteristics (MA + SA) ")
++   print(dim(train.data.fin))
++   print(table(train.data.fin$binder))
++   print("Number of cell lines")
++   print(length(unique(train.data.fin$cell_line)))
++   print('Proportion of nonbinders to binders in MA data')
++   print(table(train.data.fin$binder)[1]/table(train.data.fin$binder)[2])
++   print(table(train.data.fin$length))
++   
++   #subset to 8-11 and 12-15
++   ds_8 = train.data.fin[which(train.data.fin$length>=8 & train.data.fin$length<=11),]
++   print("8-11 peptides only: # cell lines,")
++   dim(ds_8)
++   print(length(unique(ds_8$cell_line)))
++   print(table(ds_8$length))
++   
++   ds_12 = train.data.fin[which(train.data.fin$length>=12 ),]
++   print("12-15 peptides only: # cell lines,")
++   dim(ds_12)
++   print(length(unique(ds_12$cell_line)))
++   print(table(ds_12$length))
++   
++   
++   
++   # Output data files 
++   dir1= "../../data/MA_data"
++   
++   cols2kp = c("peprep", "binder", "cell_line")
++   colsnms = c("peptide", "binder", "cell_line")
++   
++   fnm = sprintf("%s/train_v4_el_multi_HLA_%d.txt", dir1, i)
++   write.table(train.data.fin[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   fnm = sprintf("%s/train_v4_el_8to11_multi_HLA_%d.txt", dir1, i)
++   write.table(ds_8[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++   fnm = sprintf("%s/train_v4_el_12to15_multi_HLA_%d.txt", dir1, i)
++   write.table(ds_8[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++               row.names = FALSE, col.names = colsnms)
++   system(sprintf("gzip %s", fnm))
++   
++ }
+[1] "i=0"
+[1] 1399836       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1328859   70977 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     26170       8365      46581      12981      27625      38360      25231 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43728      14618      21665      19281      18147      24558      12756 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1213       5186      12509       5737       1545        652       2668 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1163       6390       4666        855       2192       9388       4012 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7680       3758       1822       9557       1012       1731       2390 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      8948       7418       1072       8226       1856       3903      13393 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1547      12040       2916       9392       7747       5016       9074 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5069       1854        313       5207       7221      10895        684 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9006       4733       5872       1038       2020        699       6615 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1526       8226       4956       2804       5083       6189      37607 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35787      22526      18352      83686      55235      22164      10188 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25043       6683      10572      15024       7847      15400       9080 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7437       6264      11010      14614      11801       3122      11037 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18318      10404      10588      12010       5593      10196      48891 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23456      13753      44872      29328      29028      43098      51072 
+
+     8      9     10     11     12     13     14 
+219385 259805 229278 225038 156270 154926 155134 
+[1] 1399836       4
+[1] "Note: No duplicated peptide+cell_line paired observations in training"
+[1] "MA data distribution after duplication filtering"
+[1] 1399836       4
+
+      0       1 
+1328859   70977 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     26170       8365      46581      12981      27625      38360      25231 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43728      14618      21665      19281      18147      24558      12756 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1213       5186      12509       5737       1545        652       2668 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1163       6390       4666        855       2192       9388       4012 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7680       3758       1822       9557       1012       1731       2390 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      8948       7418       1072       8226       1856       3903      13393 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1547      12040       2916       9392       7747       5016       9074 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5069       1854        313       5207       7221      10895        684 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9006       4733       5872       1038       2020        699       6615 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1526       8226       4956       2804       5083       6189      37607 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35787      22526      18352      83686      55235      22164      10188 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25043       6683      10572      15024       7847      15400       9080 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7437       6264      11010      14614      11801       3122      11037 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18318      10404      10588      12010       5593      10196      48891 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23456      13753      44872      29328      29028      43098      51072 
+< table of extent 0 >
+
+     8      9     10     11     12     13     14 
+219385 259805 229278 225038 156270 154926 155134 
+
+      0       1 
+1328859   70977 
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.72239 
+[1] "SA training data"
+[1] 735331      4
+
+     0      1 
+695757  39574 
+[1] 128
+
+     8      9     10     11     12     13     14     15 
+108328 126522 113316 110764  96276  93058  84564   2503 
+[1] "Final data characteristics (MA + SA) "
+[1] 2135167       4
+
+      0       1 
+2024616  110551 
+[1] "Number of cell lines"
+[1] 233
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.31386 
+
+     8      9     10     11     12     13     14     15 
+327713 386327 342594 335802 252546 247984 239698   2503 
+[1] "8-11 peptides only: # cell lines,"
+[1] 233
+
+     8      9     10     11 
+327713 386327 342594 335802 
+[1] "12-15 peptides only: # cell lines,"
+[1] 133
+
+    12     13     14     15 
+252546 247984 239698   2503 
+[1] "i=1"
+[1] 1393886       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1324367   69519 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25844       8311      46430      12962      27337      38458      25238 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     42987      14491      21687      19322      18397      24064      12558 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1195       5179      12416       5800       1522        583       2494 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1192       6480       4598        810       2191       9463       3948 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7721       3715       1906       9492       1070       1759       2352 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9000       7429       1106       8154       1685       4093      13364 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1584      11982       2872       9541       7740       4820       9083 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5125       1846        288       5032       7102      10892        631 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      8894       4508       5736       1072       2014        692       6584 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1560       8159       4972       2815       5079       6103      37335 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35676      22296      18339      82797      55062      22226      10313 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     24784       6757      10502      15126       7738      15848       9085 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7263       6093      11011      14597      11622       3243      10992 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18284      10360      10531      11938       5584      10295      48542 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23439      13512      45011      29724      29214      42810      50408 
+
+     8      9     10     11     12     13     14 
+218471 257731 228317 224298 155093 155545 154431 
+[1] 1393886       4
+[1] "Note: No duplicated peptide+cell_line paired observations in training"
+[1] "MA data distribution after duplication filtering"
+[1] 1393886       4
+
+      0       1 
+1324367   69519 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25844       8311      46430      12962      27337      38458      25238 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     42987      14491      21687      19322      18397      24064      12558 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1195       5179      12416       5800       1522        583       2494 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1192       6480       4598        810       2191       9463       3948 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7721       3715       1906       9492       1070       1759       2352 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9000       7429       1106       8154       1685       4093      13364 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1584      11982       2872       9541       7740       4820       9083 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5125       1846        288       5032       7102      10892        631 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      8894       4508       5736       1072       2014        692       6584 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1560       8159       4972       2815       5079       6103      37335 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35676      22296      18339      82797      55062      22226      10313 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     24784       6757      10502      15126       7738      15848       9085 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7263       6093      11011      14597      11622       3243      10992 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18284      10360      10531      11938       5584      10295      48542 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23439      13512      45011      29724      29214      42810      50408 
+< table of extent 0 >
+
+     8      9     10     11     12     13     14 
+218471 257731 228317 224298 155093 155545 154431 
+
+      0       1 
+1324367   69519 
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+19.05043 
+[1] "SA training data"
+[1] 734143      4
+
+     0      1 
+694900  39243 
+[1] 129
+
+     7      8      9     10     11     12     13     14     15 
+     1 108579 126436 112843 109893  96015  93726  84302   2348 
+[1] "Final data characteristics (MA + SA) "
+[1] 2128029       4
+
+      0       1 
+2019267  108762 
+[1] "Number of cell lines"
+[1] 234
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.56592 
+
+     7      8      9     10     11     12     13     14     15 
+     1 327050 384167 341160 334191 251108 249271 238733   2348 
+[1] "8-11 peptides only: # cell lines,"
+[1] 234
+
+     8      9     10     11 
+327050 384167 341160 334191 
+[1] "12-15 peptides only: # cell lines,"
+[1] 133
+
+    12     13     14     15 
+251108 249271 238733   2348 
+[1] "i=2"
+[1] 1400973       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1329176   71797 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25984       8383      46410      12947      27716      38293      25758 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43985      14275      21241      19587      18532      24544      12777 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1231       5161      12376       5762       1542        613       2471 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1184       6249       4658        850       2304       9493       4046 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7723       3725       1857       9520       1087       1719       2331 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9222       7592       1055       8370       1775       3998      13473 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1557      12074       2975       9328       7598       4809       9039 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5017       1773        292       5191       7214      10826        669 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9135       4684       5848       1035       1949        667       6753 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1588       8124       5046       2782       5078       6022      37814 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     36043      22375      18455      83712      54876      22320      10314 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25069       6711      10439      15274       7721      15540       9182 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7557       6236      11193      14753      11603       3173      11130 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18258      10165      10441      11941       5757      10238      48816 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23566      13599      45322      29944      29289      42867      50388 
+
+     8      9     10     11     12     13     14 
+219362 259626 229181 225050 157094 155504 155156 
+[1] 1400973       4
+[1] "Note: No duplicated peptide+cell_line paired observations in training"
+[1] "MA data distribution after duplication filtering"
+[1] 1400973       4
+
+      0       1 
+1329176   71797 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25984       8383      46410      12947      27716      38293      25758 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43985      14275      21241      19587      18532      24544      12777 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1231       5161      12376       5762       1542        613       2471 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1184       6249       4658        850       2304       9493       4046 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7723       3725       1857       9520       1087       1719       2331 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9222       7592       1055       8370       1775       3998      13473 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1557      12074       2975       9328       7598       4809       9039 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5017       1773        292       5191       7214      10826        669 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9135       4684       5848       1035       1949        667       6753 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1588       8124       5046       2782       5078       6022      37814 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     36043      22375      18455      83712      54876      22320      10314 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25069       6711      10439      15274       7721      15540       9182 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7557       6236      11193      14753      11603       3173      11130 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18258      10165      10441      11941       5757      10238      48816 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23566      13599      45322      29944      29289      42867      50388 
+< table of extent 0 >
+
+     8      9     10     11     12     13     14 
+219362 259626 229181 225050 157094 155504 155156 
+
+      0       1 
+1329176   71797 
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.51297 
+[1] "SA training data"
+[1] 736045      4
+
+     0      1 
+696420  39625 
+[1] 127
+
+     8      9     10     11     12     13     14     15 
+108322 126229 113366 110632  96478  93934  84614   2470 
+[1] "Final data characteristics (MA + SA) "
+[1] 2137018       4
+
+      0       1 
+2025596  111422 
+[1] "Number of cell lines"
+[1] 232
+[1] "Proportion of nonbinders to binders in MA data"
+      0 
+18.1795 
+
+     8      9     10     11     12     13     14     15 
+327684 385855 342547 335682 253572 249438 239770   2470 
+[1] "8-11 peptides only: # cell lines,"
+[1] 232
+
+     8      9     10     11 
+327684 385855 342547 335682 
+[1] "12-15 peptides only: # cell lines,"
+[1] 133
+
+    12     13     14     15 
+253572 249438 239770   2470 
+[1] "i=3"
+[1] 1401092       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1330835   70257 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25674       8450      46722      13149      27786      38476      25678 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43919      14552      21408      19574      18113      24615      12899 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1191       5083      12263       5816       1519        610       2521 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1137       6349       4614        837       2181       9519       3941 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7607       3682       1916       9606       1018       1672       2298 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      8983       7542       1037       8305       1858       3967      13718 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1524      12009       2885       9399       7562       4767       9209 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5200       1816        261       4954       7231      10977        618 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9052       4617       5945       1002       2061        704       6559 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1587       8086       4951       2825       5060       6038      37792 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35826      22611      18634      82956      55240      22486      10382 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25177       6812      10561      15333       7672      15547       8805 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7528       6270      11258      14808      11648       3211      11266 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18439      10249      10392      12158       5665      10522      48464 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23702      13448      45219      29827      29136      42992      50352 
+
+     8      9     10     11     12     13     14 
+218889 258534 230047 224756 157025 156021 155820 
+[1] 1401092       4
+[1] "Note: No duplicated peptide+cell_line paired observations in training"
+[1] "MA data distribution after duplication filtering"
+[1] 1401092       4
+
+      0       1 
+1330835   70257 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25674       8450      46722      13149      27786      38476      25678 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43919      14552      21408      19574      18113      24615      12899 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1191       5083      12263       5816       1519        610       2521 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1137       6349       4614        837       2181       9519       3941 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7607       3682       1916       9606       1018       1672       2298 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      8983       7542       1037       8305       1858       3967      13718 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1524      12009       2885       9399       7562       4767       9209 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5200       1816        261       4954       7231      10977        618 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      9052       4617       5945       1002       2061        704       6559 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1587       8086       4951       2825       5060       6038      37792 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35826      22611      18634      82956      55240      22486      10382 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25177       6812      10561      15333       7672      15547       8805 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7528       6270      11258      14808      11648       3211      11266 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18439      10249      10392      12158       5665      10522      48464 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23702      13448      45219      29827      29136      42992      50352 
+< table of extent 0 >
+
+     8      9     10     11     12     13     14 
+218889 258534 230047 224756 157025 156021 155820 
+
+      0       1 
+1330835   70257 
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.94238 
+[1] "SA training data"
+[1] 738197      4
+
+     0      1 
+698735  39462 
+[1] 130
+
+     8      9     10     11     12     13     14     15 
+108483 127530 113748 110964  96650  93592  84717   2513 
+[1] "Final data characteristics (MA + SA) "
+[1] 2139289       4
+
+      0       1 
+2029570  109719 
+[1] "Number of cell lines"
+[1] 235
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.49789 
+
+     8      9     10     11     12     13     14     15 
+327372 386064 343795 335720 253675 249613 240537   2513 
+[1] "8-11 peptides only: # cell lines,"
+[1] 235
+
+     8      9     10     11 
+327372 386064 343795 335720 
+[1] "12-15 peptides only: # cell lines,"
+[1] 132
+
+    12     13     14     15 
+253675 249613 240537   2513 
+[1] "i=4"
+[1] 1395234       3
+[1] "MA data distribution before duplication filtering"
+
+      0       1 
+1323497   71737 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25730       8227      46771      12885      27638      38239      25426 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43330      14346      21230      19532      18354      24397      12693 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1224       5053      12240       5883       1505        626       2482 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1183       6272       4676        834       2209       9481       3947 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7410       3572       1888       9595       1026       1710       2268 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9107       7317       1073       8071       1773       3960      13426 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1590      12051       2888       9393       7612       4935       9086 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5108       1815        320       5092       7211      10863        640 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      8915       4631       5764       1062       2045        678       6528 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1602       7972       4980       2918       5158       6041      37507 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35659      22515      18326      83195      55467      22338      10212 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25090       6558      10650      15326       7686      15660       8865 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7421       6173      11232      14748      11699       3087      10969 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18173      10328      10384      11976       5607       9983      48731 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23469      13469      45403      29457      28959      42970      50435 
+
+     8      9     10     11     12     13     14 
+217951 259215 228695 224065 156112 155011 154185 
+[1] 1395234       4
+[1] "Note: No duplicated peptide+cell_line paired observations in training"
+[1] "MA data distribution after duplication filtering"
+[1] 1395234       4
+
+      0       1 
+1323497   71737 
+
+    Apher1     Apher6      Bcell       CA46      CD165      CM467 Fibroblast 
+     25730       8227      46771      12885      27638      38239      25426 
+     GD149    HCC1143    HCC1937     HCT116     HEK293      HL-60         JY 
+     43330      14346      21230      19532      18354      24397      12693 
+    Line.1    Line.10    Line.11    Line.12    Line.13    Line.14    Line.15 
+      1224       5053      12240       5883       1505        626       2482 
+   Line.16    Line.17    Line.18    Line.19     Line.2    Line.20    Line.21 
+      1183       6272       4676        834       2209       9481       3947 
+   Line.22    Line.23    Line.24    Line.25    Line.26    Line.27    Line.28 
+      7410       3572       1888       9595       1026       1710       2268 
+   Line.29     Line.3    Line.30    Line.31    Line.32    Line.33    Line.34 
+      9107       7317       1073       8071       1773       3960      13426 
+   Line.35    Line.36    Line.37    Line.38    Line.39     Line.4    Line.40 
+      1590      12051       2888       9393       7612       4935       9086 
+   Line.41    Line.42    Line.43    Line.44    Line.45    Line.46    Line.47 
+      5108       1815        320       5092       7211      10863        640 
+   Line.48    Line.49     Line.5    Line.50    Line.51    Line.52    Line.53 
+      8915       4631       5764       1062       2045        678       6528 
+   Line.54    Line.55     Line.6     Line.7     Line.8     Line.9    LNT-229 
+      1602       7972       4980       2918       5158       6041      37507 
+   MAVER-1      MD155     Mel-12     Mel-15     Mel-16      Mel-5    Mel-624 
+     35659      22515      18326      83195      55467      22338      10212 
+     Mel-8    pat-AC2      pat-C   pat-CELG    pat-CP2     pat-FL      pat-J 
+     25090       6558      10650      15326       7686      15660       8865 
+  pat-JPB3    pat-JT2      pat-M     pat-MA     pat-ML    pat-NS2     pat-NT 
+      7421       6173      11232      14748      11699       3087      10969 
+   pat-PF1      pat-R     pat-RT     pat-SR     pat-ST       PD42      RA957 
+     18173      10328      10384      11976       5607       9983      48731 
+  RPMI8226   SK-Mel-5       T98G      THP-1       TIL1       TIL3       U-87 
+     23469      13469      45403      29457      28959      42970      50435 
+< table of extent 0 >
+
+     8      9     10     11     12     13     14 
+217951 259215 228695 224065 156112 155011 154185 
+
+      0       1 
+1323497   71737 
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.44929 
+[1] "SA training data"
+[1] 735689      4
+
+     0      1 
+696046  39643 
+[1] 128
+
+     8      9     10     11     12     13     14     15 
+108608 126878 112970 110002  96501  93590  84794   2346 
+[1] "Final data characteristics (MA + SA) "
+[1] 2130923       4
+
+      0       1 
+2019543  111380 
+[1] "Number of cell lines"
+[1] 233
+[1] "Proportion of nonbinders to binders in MA data"
+       0 
+18.13201 
+
+     8      9     10     11     12     13     14     15 
+326559 386093 341665 334067 252613 248601 238979   2346 
+[1] "8-11 peptides only: # cell lines,"
+[1] 233
+
+     8      9     10     11 
+326559 386093 341665 334067 
+[1] "12-15 peptides only: # cell lines,"
+[1] 133
+
+    12     13     14     15 
+252613 248601 238979   2346 
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] ggplot2_3.3.4     stringr_1.4.0     stringi_1.4.3     data.table_1.12.2
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.2        magrittr_1.5      tidyselect_1.1.1  munsell_0.5.0    
+ [5] colorspace_1.4-1  R6_2.4.0          rlang_0.4.11      fansi_0.4.0      
+ [9] dplyr_1.0.7       tools_3.6.1       grid_3.6.1        gtable_0.3.0     
+[13] R.oo_1.24.0       utf8_1.1.4        withr_2.1.2       ellipsis_0.3.2   
+[17] digest_0.6.20     tibble_3.1.2      lifecycle_1.0.0   crayon_1.3.4     
+[21] purrr_0.3.3       R.utils_2.10.1    vctrs_0.3.8       glue_1.4.2       
+[25] labeling_0.3      compiler_3.6.1    pillar_1.6.1      R.methodsS3_1.8.1
+[29] generics_0.1.0    scales_1.0.0      pkgconfig_2.0.2  
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+231.718  10.796 221.956 

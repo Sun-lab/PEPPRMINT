@@ -1,0 +1,246 @@
+---
+title: "single allele shared"
+author: "Laura Zhou"
+date: "7/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Load required library
+  
+```{r warning=FALSE, echo = TRUE, results = 'hide', warning = FALSE, message = FALSE}
+library(data.table)
+library(plyr)
+library(ggplot2)
+library(ggpubr)
+theme_set(theme_bw())
+library(ggpointdensity)
+library(ggrepel)
+library(stringr)
+```
+
+## Training data (post duplication removal)
+
+Note: All five splits of SA combined is the full set of SA data. Training data is the first 4 splits
+
+
+```{r}
+# train = fread("../../../data/SA_data/by_split/train_v4_el_single_HLA_0.txt.gz")
+train = fread("../../data/SA_data/train_v4_el_single_HLA.txt.gz")
+head(train)
+dim(train)
+length(unique(train$HLA))
+table(train$HLA)
+table(train$binder, train$HLA)
+
+train$pepseq = str_replace_all(train$peptide,"X","")
+train$pep_length = nchar(train$pepseq)
+head(train)
+
+table(train$pep_length)
+table(train$binder, train$pep_length)
+```
+
+## Looking at the HLA identified as having large proportion binders below 0.1
+
+```{r}
+train1 = train[which(train$HLA == "HLA-A25:01" |train$HLA == "HLA-A68:01"
+                     | train$HLA == "HLA-C03:03"),]
+
+table(train1$HLA, train1$pep_length, train1$binder)
+table(train1$HLA)
+```
+
+## Training data: Overlapping of peptides in HLA
+
+```{r}
+train.data0 = fread("../../data/NetMHCpan4_1_train/c000_el")
+dim(train.data0)
+names(train.data0)  = c("peptide", "binder", "HLA")
+head(train.data0)
+
+alleles = fread("../../data/SA_data/alleles_SAonly.txt")
+dim(alleles)
+allele = alleles$cell_line
+  
+table(allele %in% train.data0$HLA)
+
+t = train.data0[which(train.data0$HLA %in% allele),]
+dim(t)
+head(t)
+table(t$HLA)
+table(t$binder, t$HLA) #total peptides per HLA
+```
+
+## Duplicated Peptide tables
+```{r}
+
+# Number of peptides which are part of duplication
+sum(duplicated(t$peptide) | duplicated(t$peptide, fromLast = TRUE))
+t1 = t[which(duplicated(t$peptide) | duplicated(t$peptide, fromLast = TRUE)),]
+t1[1:15,]
+table(t1$binder, t1$HLA)
+table(t1$HLA)
+
+round(table(t1$binder, t1$HLA)[2,]/table(t1$HLA),3) #Proportion of duplicated peptides that are binders
+#table(t[which(t$binder==1),]$HLA)
+
+
+# Total number of unique peptides 
+length(unique(t1$peptide))
+
+# How many HLA does a unique peptide bind to? (i.e. 752 peptides are duplicated twice/bind to 2 HLA)
+table(table(t1$peptide))
+
+# How many peptides does a pair of HLA share? (i.e.273 grouping of HLA share only 1 peptide)
+t2 = ddply(t1, .(peptide), summarise, HLApair=paste0(HLA, collapse=","))
+#t2
+head(t2)
+dim(t2)
+table(t2$HLApair)
+table(table(t2$HLApair))
+table1 = table(t2$HLApair) 
+table1[table1>5]#checking that table was made correctly (should be 6 peptides)
+t2[which(t2$HLApair =="HLA-A01:01,HLA-A02:01"),] 
+
+df1 = data.frame(hlapair = names(table1), num_pep=as.numeric(table1))
+df1$hla_in_group = str_count(df1$hlapair, ",")+1
+df1$hlapair[which(df1$num_pep < 5)] = ""
+ggplot(df1, aes(x=hla_in_group, y=num_pep)) + geom_point() + 
+  geom_text_repel(aes(label = hlapair), size = 3.5, 
+                     min.segment.length = 0, 
+                     box.padding = unit(0.25, "lines"),
+                     point.padding = unit(0.25, "lines")) +
+  ggtitle(" ")
+
+```
+
+## Hierarchical Clustering
+```{r}
+head(t)
+dim(t)
+hla.list = unique(t$HLA)
+#hla.list = hla.list[1:5]
+
+dist.ds = matrix(NA, nrow = length(hla.list), ncol = length(hla.list))
+
+for(i in 1:length(hla.list)){
+  #print(paste("i=", i, sep  =""))
+  #print(hla.list[i])
+  #k = i+1
+  #if(k<=length(hla.list)){
+  #  for(j in k:length(hla.list)){
+  for(j in 1:length(hla.list)){
+    #print(j)
+    #print(hla.list[j])
+    
+    hla1 = t[which(t$HLA==hla.list[i]),]
+    dim(hla1)
+    hla2 = t[which(t$HLA == hla.list[j]),]
+    dim(hla2)
+    
+    over = merge(hla1, hla2, by = c("peptide", "binder"))
+    unique(over$peptide)
+    
+    # m = number of of peptide to HLA1 (including overlap)
+    m = nrow(hla1)
+    # n = # peptide not bind to HLA1 (total - m)
+    n = nrow(t) - nrow(hla1)
+    # k = # peptide to HLA2 (including overlap)
+    k = nrow(hla2)
+    # q = # peptide bind to HLA1 and HLA2 (overlap)
+    q = nrow(over)-1
+    
+    #phyper(q,m,n,k, lower.tail = TRUE, log.p = FALSE)
+    lowtail = phyper(q,m,n,k, lower.tail = TRUE, log.p = FALSE)
+    
+    dist.ds[i,j] = lowtail
+    }
+  #}else{
+    #print("reached end of row")
+    #next 
+  #}
+  
+}
+
+head(dist.ds)
+rownames(dist.ds) = colnames(dist.ds) = hla.list
+
+#change lower tail to p-value
+dist.ds.pval = 1- dist.ds
+
+#truncate p-vaue 
+dist.ds.tilde = ifelse(dist.ds.pval < 1E-10, 1E-10, dist.ds.pval)
+sum(dist.ds.tilde<=1E-10)
+
+#take 10+log10 transofmration
+dist.ds.neglog10  = -log10(dist.ds.tilde)
+dist.ds.log10  = log10(dist.ds.tilde)
+dist.ds.tilde1 = 10+dist.ds.log10
+head(dist.ds.tilde1)
+sum(is.na(dist.ds.tilde1))
+
+dist.ds1 = as.dist(dist.ds.tilde1, upper =FALSE)
+head(dist.ds1)
+
+
+
+# Heirarchcal clustering
+# Dissimilarity matrix
+#d <- dist(dist.ds, method = "euclidean")
+# Hierarchical clustering using Complete Linkage
+hc1 <- hclust(dist.ds1, method = "complete" )
+plot(hc1)
+library(ggdendro)
+ggdendrogram(hc1, rotate = TRUE, size = 10, theme_dendro = TRUE)
+
+# install.packages("dendextend")
+# install.packages("circlize")
+library(dendextend)
+library(circlize)
+hc2 = as.dendrogram(hc1)
+hc3 <- hc2 %>%
+  color_branches(k = 128) %>%
+  color_labels(k = 128)
+circlize_dendrogram(hc3,
+                    labels_track_height = NA,
+                    dend_track_height = 0.3)
+
+#export to pdf
+pdf("../../../figures/SA/HLA_clustering.pdf")
+circlize_dendrogram(hc3,
+                    labels_track_height = NA,
+                    dend_track_height = 0.3)
+dev.off()
+
+hla1 = t[which(t$HLA=="HLA-B44:02"),]
+dim(hla1)
+hla2 = t[which(t$HLA == "HLA-B44:28"),]
+dim(hla2)
+    
+over = merge(hla1, hla2, by = c("peptide", "binder"))
+unique(over$peptide)
+
+```
+
+
+
+## Looking at the group of HLA with lots of peptides 
+```{r}
+group = names(table1[table1>5])
+for(i in length(group)){
+  g1 = group[[i]]
+  print(g1)
+  t3 = t2[which(t2$HLApair ==g1),] 
+  print(paste("number of peptides  = ", nrow(t3), 
+              sep  =""))
+  
+  t3$pep_length = nchar(t3$peptide)
+  print(table(t3$pep_length))
+}
+
+```
+
+

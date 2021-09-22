@@ -1,0 +1,60 @@
+#---------------------------------------------------------------------------------
+# Step 2. Run code for PEPPRMINT
+# Note: MA pan-specific NN model
+#---------------------------------------------------------------------------------
+# Set parameters used for training
+hidden.sizes1 = c(200, 400, 800) # hidden node configurations
+Date = "Aug5" # Date for labeling training files
+initmodel = c("pMHCpan_800_bs_32_lr_0.001_e_50_layer_1_full_Jul26.h5") # initializing SA model
+pi = 0.5 # weight of new pi to update pi estimate
+decr = 2 # number of decreasing iterations for early stopping
+epochs = 10 # number of epochs trained
+test_da = "../data/test_data/MHCflurry2/MHCflurry2_test_el_multi_HLA.txt.gz"
+
+cat("", file="../../python/run_files/PEPPRMINT_training_v4_run.sh")
+
+for(split in 0:4){
+  i1 = paste("train_v4_el_multi_HLA_", split, ".txt.gz", sep="")
+  if(split==4){
+    i2 = paste("train_v4_el_multi_HLA_", "0", ".txt.gz", sep="")
+  }else{
+    i2 = paste("train_v4_el_multi_HLA_", split+1, ".txt.gz", sep="")
+  }
+  
+  i3 = test_da
+  
+  initm = initmodel
+  print(paste0("train ds = ", i1))
+  print(paste0("valid ds =", i2))
+  
+  cmd0 = sprintf("python3 PEPPRMINT.py --input_train %s --input_valid %s --input_test %s", 
+                 i1, i2, i3)
+  
+  for(l in 1:1){
+    for(h1 in hidden.sizes1){
+      h2 = h1/2
+      
+      if(l==1){
+        config = sprintf("%d_layer_%d", h1, l)
+      }else if(l==2){
+        config = sprintf("%d_%d_layer_%d", h1, h2, l)
+      }
+      
+      cmd = sprintf("%s --init_model ../results/SA/%s", cmd0, initm)
+      cmd = sprintf("%s --hidden-size1 %d --hidden-size2 %d", cmd, h1, h2)
+      cmd = sprintf("%s -L %d --olabel %s ", 
+                    cmd, l, paste("split", split, Date, sep = "_"))
+      cmd = sprintf("%s --n_epochs %s --decr_iter %s --new_pi_weight %s", 
+                    cmd, epochs, decr, pi)
+      cmd = sprintf("%s --save_model --save_all_pred --save_all_iterations", cmd)
+      cmd = sprintf("%s > logfiles/PEPPRMINT_v4_%s_layer_%s_bs_32_lr_0.001_e_%s_split%s_nocw_pi%s_decr%s_%s.log \n", 
+                    cmd, config, l, epochs, split, pi, decr, Date)
+      cat(cmd, file="../../python/run_files/PEPPRMINT_training_v4_run.sh", append=TRUE)
+    }
+  }
+
+}
+
+
+sessionInfo()
+q(save="no")
