@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------------------
-# Step 2.Create MHCflurry2.0 code for prediction of PEPPRMINT
+# Step 2.Create MA prediction code for PEPPRMINT
 # Note: For MA HLA-I EL peptide data 
 #---------------------------------------------------------------------------------
 

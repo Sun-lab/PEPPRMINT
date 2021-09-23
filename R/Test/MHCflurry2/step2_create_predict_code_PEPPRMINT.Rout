@@ -20,7 +20,7 @@ Type 'q()' to quit R.
 [Previously saved workspace restored]
 
 > #---------------------------------------------------------------------------------
-> # Step 2.Create MHCflurry2.0 code for prediction of PEPPRMINT
+> # Step 2.Create MA prediction code of PEPPRMINT
 > # Note: For MA HLA-I EL peptide data 
 > #---------------------------------------------------------------------------------
 > 

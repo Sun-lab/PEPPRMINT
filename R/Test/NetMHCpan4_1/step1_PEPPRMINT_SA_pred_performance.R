@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # Analyze PEPPRMINT prediction results 
-# NetMHCpan-4.1 test data 
+# SA test data 
 # ---------------------------------------------------------------------------
 library(data.table)
 library(PRROC)
