@@ -31,7 +31,7 @@ head(allelelist)
 
 #mixPep_100_bs_32_lr_0.001_e_50_layer_1_split0_Oct27.h5
 
-cat("", file="../../../python/run_files/predict_Net4_1_run.sh")
+cat("", file="../../../python/run_files/predict_MHCflurry2_withNet4_1_run.sh")
 
 for(c in cell_lines){
   print(c)
@@ -43,6 +43,9 @@ for(c in cell_lines){
                 toString(hlas), c_rpl)
   cmd = sprintf("%s > _predictions/MHCflurry2_Net_%s_pred.txt \n ", cmd, c_rpl )
       
-  cat(cmd, file="../../../python/run_files/predict_Net4_1_run.sh", append=TRUE)
+  cat(cmd, file="../../../python/run_files/predict_MHCflurry2_withNet4_1_run.sh", append=TRUE)
   
 }
+
+sessionInfo()
+q(save="no")

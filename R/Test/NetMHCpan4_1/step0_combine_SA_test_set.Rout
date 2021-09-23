@@ -1,0 +1,253 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ------------------------------------------------------------------------------------
+> # test dataset for HLA-I 
+> # ------------------------------------------------------------------------------------
+> 
+> dir0 = "../../../data/test_data/NetMHCpan4_1/"
+> library(stringr)
+> library(data.table)
+> 
+> fall = list.files("../../../data/test_data/NetMHCpan4_1/",
++                   pattern=".txt")
+> fall
+ [1] "HLA-A02_02.txt" "HLA-A02_05.txt" "HLA-A02_06.txt" "HLA-A02_11.txt"
+ [5] "HLA-A11_01.txt" "HLA-A23_01.txt" "HLA-A25_01.txt" "HLA-A26_01.txt"
+ [9] "HLA-A30_01.txt" "HLA-A30_02.txt" "HLA-A32_01.txt" "HLA-A33_01.txt"
+[13] "HLA-A66_01.txt" "HLA-A68_01.txt" "HLA-B07_02.txt" "HLA-B08_01.txt"
+[17] "HLA-B14_02.txt" "HLA-B15_01.txt" "HLA-B15_02.txt" "HLA-B15_03.txt"
+[21] "HLA-B15_17.txt" "HLA-B18_01.txt" "HLA-B35_03.txt" "HLA-B37_01.txt"
+[25] "HLA-B38_01.txt" "HLA-B40_01.txt" "HLA-B40_02.txt" "HLA-B45_01.txt"
+[29] "HLA-B46_01.txt" "HLA-B53_01.txt" "HLA-B58_01.txt" "HLA-C03_03.txt"
+[33] "HLA-C05_01.txt" "HLA-C07_02.txt" "HLA-C08_02.txt" "HLA-C12_03.txt"
+> 
+> test = NULL
+> for(f1 in fall){
++   print(f1)
++   temp = fread(paste(dir0, f1, sep =""))
++   print(dim(temp))
++   
++   test = rbind(test, temp)
++ }
+[1] "HLA-A02_02.txt"
+[1] 77053     3
+[1] "HLA-A02_05.txt"
+[1] 45136     3
+[1] "HLA-A02_06.txt"
+[1] 54510     3
+[1] "HLA-A02_11.txt"
+[1] 48445     3
+[1] "HLA-A11_01.txt"
+[1] 33424     3
+[1] "HLA-A23_01.txt"
+[1] 30467     3
+[1] "HLA-A25_01.txt"
+[1] 6906    3
+[1] "HLA-A26_01.txt"
+[1] 7730    3
+[1] "HLA-A30_01.txt"
+[1] 15837     3
+[1] "HLA-A30_02.txt"
+[1] 33180     3
+[1] "HLA-A32_01.txt"
+[1] 28036     3
+[1] "HLA-A33_01.txt"
+[1] 43333     3
+[1] "HLA-A66_01.txt"
+[1] 41538     3
+[1] "HLA-A68_01.txt"
+[1] 5648    3
+[1] "HLA-B07_02.txt"
+[1] 2469    3
+[1] "HLA-B08_01.txt"
+[1] 3365    3
+[1] "HLA-B14_02.txt"
+[1] 21601     3
+[1] "HLA-B15_01.txt"
+[1] 16624     3
+[1] "HLA-B15_02.txt"
+[1] 16702     3
+[1] "HLA-B15_03.txt"
+[1] 44968     3
+[1] "HLA-B15_17.txt"
+[1] 45917     3
+[1] "HLA-B18_01.txt"
+[1] 18284     3
+[1] "HLA-B35_03.txt"
+[1] 8275    3
+[1] "HLA-B37_01.txt"
+[1] 20048     3
+[1] "HLA-B38_01.txt"
+[1] 9509    3
+[1] "HLA-B40_01.txt"
+[1] 18908     3
+[1] "HLA-B40_02.txt"
+[1] 23768     3
+[1] "HLA-B45_01.txt"
+[1] 18750     3
+[1] "HLA-B46_01.txt"
+[1] 14015     3
+[1] "HLA-B53_01.txt"
+[1] 46991     3
+[1] "HLA-B58_01.txt"
+[1] 17946     3
+[1] "HLA-C03_03.txt"
+[1] 35568     3
+[1] "HLA-C05_01.txt"
+[1] 7033    3
+[1] "HLA-C07_02.txt"
+[1] 15293     3
+[1] "HLA-C08_02.txt"
+[1] 32416     3
+[1] "HLA-C12_03.txt"
+[1] 36448     3
+> 
+> dim(test)
+[1] 946141      3
+> colnames(test) = c("peptide", "binder", "HLA")
+> head(test)
+        peptide binder        HLA
+1:    AAADIVNFL      1 HLA-A02:02
+2:   AAFEFDIHQV      1 HLA-A02:02
+3:    ADASLLKKV      1 HLA-A02:02
+4: AEISQIHQSVTD      1 HLA-A02:02
+5:    AENEFVTIK      1 HLA-A02:02
+6:  AEQNRKDAEAW      1 HLA-A02:02
+> 
+> table(test$binder)
+
+     0      1 
+900725  45416 
+> table(test$HLA)
+
+HLA-A02:02 HLA-A02:05 HLA-A02:06 HLA-A02:11 HLA-A11:01 HLA-A23:01 HLA-A25:01 
+     77053      45136      54510      48445      33424      30467       6906 
+HLA-A26:01 HLA-A30:01 HLA-A30:02 HLA-A32:01 HLA-A33:01 HLA-A66:01 HLA-A68:01 
+      7730      15837      33180      28036      43333      41538       5648 
+HLA-B07:02 HLA-B08:01 HLA-B14:02 HLA-B15:01 HLA-B15:02 HLA-B15:03 HLA-B15:17 
+      2469       3365      21601      16624      16702      44968      45917 
+HLA-B18:01 HLA-B35:03 HLA-B37:01 HLA-B38:01 HLA-B40:01 HLA-B40:02 HLA-B45:01 
+     18284       8275      20048       9509      18908      23768      18750 
+HLA-B46:01 HLA-B53:01 HLA-B58:01 HLA-C03:03 HLA-C05:01 HLA-C07:02 HLA-C08:02 
+     14015      46991      17946      35568       7033      15293      32416 
+HLA-C12:03 
+     36448 
+> 
+> #Put in 15-length representation
+> #create 15 length representation for training data 
+> makerep = function(train.data){
++   #create 15 length representation for training data 
++   train.data$length = nchar(train.data$peptide)
++   print(table(train.data$length))
++   train.data$peprep = NA
++   train.data$peprep[which(train.data$length==8)] = paste(
++     substr(train.data$peptide[which(train.data$length==8)], 1, 4), "XXXXXXX", 
++     substr(train.data$peptide[which(train.data$length==8)], 5, 8), sep="")
++   
++   train.data$peprep[which(train.data$length==9)] = paste(
++     substr(train.data$peptide[which(train.data$length==9)], 1, 4), "XXX", 
++     substr(train.data$peptide[which(train.data$length==9)], 5, 5), 
++     "XXX", substr(train.data$peptide[which(train.data$length==9)], 6, 9),
++     sep="")
++   
++   train.data$peprep[which(train.data$length==10)] = paste(
++     substr(train.data$peptide[which(train.data$length==10)], 1, 4), "XXX",
++     substr(train.data$peptide[which(train.data$length==10)], 5, 6), "XX",
++     substr(train.data$peptide[which(train.data$length==10)], 7, 10), sep="")
++   
++   train.data$peprep[which(train.data$length==11)] = paste(
++     substr(train.data$peptide[which(train.data$length==11)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==11)], 5, 7), "XX",
++     substr(train.data$peptide[which(train.data$length==11)], 8, 11), sep="")
++   
++   train.data$peprep[which(train.data$length==12)]=paste(
++     substr(train.data$peptide[which(train.data$length==12)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==12)], 5, 8), "X",
++     substr(train.data$peptide[which(train.data$length==12)], 9, 12), sep="")
++   
++   train.data$peprep[which(train.data$length==13)]=paste(
++     substr(train.data$peptide[which(train.data$length==13)], 1, 4), "X", 
++     substr(train.data$peptide[which(train.data$length==13)], 5, 9), "X",
++     substr(train.data$peptide[which(train.data$length==13)], 10, 13), sep="")
++   
++   train.data$peprep[which(train.data$length==14)] = paste(
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 1, 4), "X", 
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 5, 14), sep="")
++   
++   train.data$peprep[which(train.data$length==15)]=
++     train.data$peptide[which(train.data$length==15)]
++   
++   print(dim(train.data))
++   
++   
++   return(train.data)
++ }
+> 
+> test_pad = makerep(test) 
+
+     8      9     10     11     12     13     14 
+132903 153991 136164 133509 130638 129701 129235 
+[1] 946141      5
+> head(test_pad)
+        peptide binder        HLA length          peprep
+1:    AAADIVNFL      1 HLA-A02:02      9 AAADXXXIXXXVNFL
+2:   AAFEFDIHQV      1 HLA-A02:02     10 AAFEXXXFDXXIHQV
+3:    ADASLLKKV      1 HLA-A02:02      9 ADASXXXLXXXLKKV
+4: AEISQIHQSVTD      1 HLA-A02:02     12 AEISXXQIHQXSVTD
+5:    AENEFVTIK      1 HLA-A02:02      9 AENEXXXFXXXVTIK
+6:  AEQNRKDAEAW      1 HLA-A02:02     11 AEQNXXRKDXXAEAW
+> 
+> # ------------------------------------------------------------------------------------
+> # Output data files 
+> # ------------------------------------------------------------------------------------
+> 
+> cols2kp = c("peprep", "binder", "HLA")
+> colsnms = c("peptide", "binder", "HLA")
+> 
+> fnm = sprintf("%s/NetMHCpan41_test_el_single_HLA.txt", dir0)
+> write.table(test_pad[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++             row.names = FALSE, col.names = colsnms)
+> system(sprintf("gzip %s", fnm))
+> 
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] data.table_1.12.2 stringr_1.4.0    
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1 magrittr_1.5   tools_3.6.1    stringi_1.4.3 
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+ 12.597   0.788  16.273 

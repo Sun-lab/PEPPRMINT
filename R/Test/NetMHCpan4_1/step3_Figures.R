@@ -137,7 +137,7 @@ ggsave(
 )
 
 ggsave(
-  "../../../figures/PEPPRMINT/hla_AUC_compare_legend.pdf",
+  "../../../figures/PEPPRMINT/hla_legend.pdf",
   plot = l,
   device = NULL,
   path = NULL,

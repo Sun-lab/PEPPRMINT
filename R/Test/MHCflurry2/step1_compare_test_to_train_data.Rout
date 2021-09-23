@@ -1,0 +1,981 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> # ------------------------------------------------------------------------------------
+> # Comparison with training data used for PEPPRMINT 
+> #   Note: PEPPRMINT training data is the human allele subset of the NetMHCpan-4.1 data
+> # ------------------------------------------------------------------------------------
+> library(data.table)
+> library(stringr)
+> library(stringi)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Warning message:
+package ‘dplyr’ was built under R version 3.6.2 
+> dir0 = "../../../data/MA_data/"
+> fall = list.files(dir0, pattern="train_v4_el_multi_HLA_")
+> fall
+[1] "train_v4_el_multi_HLA_0.txt.gz" "train_v4_el_multi_HLA_1.txt.gz"
+[3] "train_v4_el_multi_HLA_2.txt.gz" "train_v4_el_multi_HLA_3.txt.gz"
+[5] "train_v4_el_multi_HLA_4.txt.gz"
+> 
+> # ------------------------------------------------------------------------------------
+> # Compare with NetMHCpan-4.1 training data 
+> # ------------------------------------------------------------------------------------
+> nettrain = fread(paste0(dir0, fall[[1]]))
+> fall1 = fall[-1]
+> 
+> for(f in fall1){
++   print(f)
++   split = fread(paste0(dir0, f))
++   nettrain = rbind(nettrain,split)
++ }
+[1] "train_v4_el_multi_HLA_1.txt.gz"
+[1] "train_v4_el_multi_HLA_2.txt.gz"
+[1] "train_v4_el_multi_HLA_3.txt.gz"
+[1] "train_v4_el_multi_HLA_4.txt.gz"
+> 
+> dim(nettrain)
+[1] 10670426        3
+> head(nettrain)
+           peptide binder cell_line
+1: VPNAXXXGXXXRGLV      1     Bcell
+2: RLWQXXXNAXXLLEK      1   LNT-229
+3: HLFQXXXKXXXKLAA      1    Mel-12
+4: EVFAXXPPAEXAYAR      1    Mel-15
+5: DVIGXXXKXXXAKSL      1    Line.8
+6: HIFAXXXKXXXVQQR      1     RA957
+> nettrain$Peptide = str_replace_all(nettrain$peptide, "X", "")
+> head(nettrain)
+           peptide binder cell_line      Peptide
+1: VPNAXXXGXXXRGLV      1     Bcell    VPNAGRGLV
+2: RLWQXXXNAXXLLEK      1   LNT-229   RLWQNALLEK
+3: HLFQXXXKXXXKLAA      1    Mel-12    HLFQKKLAA
+4: EVFAXXPPAEXAYAR      1    Mel-15 EVFAPPAEAYAR
+5: DVIGXXXKXXXAKSL      1    Line.8    DVIGKAKSL
+6: HIFAXXXKXXXVQQR      1     RA957    HIFAKVQQR
+> 
+> net1 = nettrain[which(nettrain$binder==1),]
+> dim(net1)
+[1] 551834      4
+> 
+> net1sub = net1[,c("peptide", "Peptide")]
+> net1sub = distinct(net1sub)
+> dim(net1sub)
+[1] 242372      2
+> 
+> # MHCflurry-2.0 MULTIALLELIC-RECENT dataset 
+> mhcflurry= fread("../../../data/test_data/MHCflurry2/MHCflurry2_test_el_multi_HLA.txt.gz")
+> flurry_bind = mhcflurry[mhcflurry$binder==1,]
+> dim(flurry_bind)
+[1] 27007     3
+> head(flurry_bind)
+           peptide binder        cell_line
+1: QLEDXXXEXXXALKY      1 10-002-S1-TISSUE
+2: ALAAXXXEXXXLNQL      1 10-002-S1-TISSUE
+3: NLSQXXXRXXXVVSY      1 10-002-S1-TISSUE
+4: ANLPXXXNQXXVHRK      1 10-002-S1-TISSUE
+5: KLIQXXXLXXXQFEV      1 10-002-S1-TISSUE
+6: SLWSXXXLXXXLVTL      1 10-002-S1-TISSUE
+> 
+> #peptides in MA test set and training 
+> over = merge(flurry_bind, net1sub, by = c("peptide"))
+> head(over)
+           peptide binder          cell_line    Peptide
+1: AAAAXXXAAXXQSVY      1      637/13-TISSUE AAAAAAQSVY
+2: AAAAXXXAXXXEALA      1      637/13-TISSUE  AAAAAEALA
+3: AAAAXXXLXXXPTLY      1      637/13-TISSUE  AAAALPTLY
+4: AAAAXXXLXXXPTLY      1  LEIDEN-004-TISSUE  AAAALPTLY
+5: AAAAXXXPXXXSPVM      1 KESKIN_H4198_BT187  AAAAPSPVM
+6: AAAAXXXPXXXSPVM      1 KESKIN_H4198_BT187  AAAAPSPVM
+> dim(over)
+[1] 15150     4
+> 
+> # output set of peptides that are not in NetMHCpan-4.1 training data
+> over_pep  = over$peptide
+> a = flurry_bind$peptide %in% over_pep 
+> dis_pep = flurry_bind[!a,]
+> 
+> dis_pep$sample = paste(dis_pep$cell_line,
++                                  dis_pep$peptide, sep = ";")
+> head(dis_pep)
+           peptide binder        cell_line                           sample
+1: ALAAXXXEXXXLNQL      1 10-002-S1-TISSUE 10-002-S1-TISSUE;ALAAXXXEXXXLNQL
+2: ANLPXXXNQXXVHRK      1 10-002-S1-TISSUE 10-002-S1-TISSUE;ANLPXXXNQXXVHRK
+3: SLWSXXXLXXXLVTL      1 10-002-S1-TISSUE 10-002-S1-TISSUE;SLWSXXXLXXXLVTL
+4: KSIFXXXDXXXPNTF      1 10-002-S1-TISSUE 10-002-S1-TISSUE;KSIFXXXDXXXPNTF
+5: THEEXXXVXXXINLI      1 10-002-S1-TISSUE 10-002-S1-TISSUE;THEEXXXVXXXINLI
+6: GTFQXXXPXXXEAGR      1 10-002-S1-TISSUE 10-002-S1-TISSUE;GTFQXXXPXXXEAGR
+> 
+> #dis_pep$pep_line = paste(dis_pep$cell_line,
+> #                       dis_pep$Peptide, sep = ";")
+> #head(dis_pep)
+> 
+> 
+> 
+> #save 
+> fnm = "../../../data/test_data/MHCflurry2/MHCflurry2_test_el_multi_HLA_no_overlap.txt"
+> write.table(dis_pep[,c("sample", "binder", "cell_line")], fnm,
++             sep = "\t", quote = FALSE, row.names = FALSE, 
++             col.names = c("peptide", "y_true", "cell_line"))
+> 
+> 
+> 
+> over1 = merge(flurry_bind, net1, by = c("peptide"))
+> head(over1)
+           peptide binder.x   cell_line.x binder.y cell_line.y    Peptide
+1: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     LNT-229 AAAAAAQSVY
+2: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     Line.33 AAAAAAQSVY
+3: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     Line.46 AAAAAAQSVY
+4: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     Line.18 AAAAAAQSVY
+5: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     Line.16 AAAAAAQSVY
+6: AAAAXXXAAXXQSVY        1 637/13-TISSUE        1     Line.11 AAAAAAQSVY
+> dim(over1)
+[1] 79197     6
+> table(over1$cell_line.x)
+
+  10-002-S1-TISSUE   11-002-S1-TISSUE       29/14-TISSUE      637/13-TISSUE 
+              1800               2587              23882              10949 
+    BCN-018-TISSUE      CPH-07-TISSUE      CPH-08-TISSUE      CPH-09-TISSUE 
+              2611               5208               8746               3832 
+  KESKIN_13240-002   KESKIN_13240-005   KESKIN_13240-006   KESKIN_13240-015 
+               206               1757                410                815 
+  KESKIN_CP-594_V1   KESKIN_DFCI-5283   KESKIN_DFCI-5328   KESKIN_DFCI-5341 
+               481                955                 64                339 
+KESKIN_H4198_BT187 KESKIN_H4512_BT145  LEIDEN-004-TISSUE  LEIDEN-005-TISSUE 
+              2799               2392               3364               6000 
+> table(over1$cell_line.x, over1$cell_line.y)
+                    
+                     Apher1 Apher6 Bcell CA46 CD165 CM467 Fibroblast GD149
+  10-002-S1-TISSUE       29     18    31    8    16    30         31    32
+  11-002-S1-TISSUE       22     20    21    7    29    34         47    25
+  29/14-TISSUE           67     53   457   16   262   878        507   722
+  637/13-TISSUE          81     57    36   28   126   149         37   104
+  BCN-018-TISSUE         77     12    31    8    38    39         37    51
+  CPH-07-TISSUE          50     28    43    5    52    55         80    68
+  CPH-08-TISSUE         101     49   107   29    83   109        101   277
+  CPH-09-TISSUE          70     22    43    4    34    53         69    79
+  KESKIN_13240-002        3      0     0    2     3     0         10     3
+  KESKIN_13240-005        2      3    12    1     7    21         28   127
+  KESKIN_13240-006        4      0     5    2     3     0          3    14
+  KESKIN_13240-015        4      1     1    0    17    81          4     4
+  KESKIN_CP-594_V1        1      1     4    1     0     4          7     0
+  KESKIN_DFCI-5283        2     11    10    1     4     5         13     2
+  KESKIN_DFCI-5328        0      0     1    0     1     1          2     0
+  KESKIN_DFCI-5341        0      2     0    0     0     0          0     1
+  KESKIN_H4198_BT187     12      1    15   26   117    31         33    27
+  KESKIN_H4512_BT145     17      1    11    2    29   157          3    38
+  LEIDEN-004-TISSUE      37     18    33   13    40    52         43    82
+  LEIDEN-005-TISSUE      61     37    57   16    44    57         60    89
+                    
+                     HCC1143 HCC1937 HCT116 HEK293 HL-60 HLA-A01:01 HLA-A01:03
+  10-002-S1-TISSUE        11      20     10     15     7         10          1
+  11-002-S1-TISSUE        22      42     10     10     7          4          0
+  29/14-TISSUE            35     433    311     38     9        576          4
+  637/13-TISSUE           51     217    131     14    55          0          0
+  BCN-018-TISSUE          21      26     11     16     9         16          0
+  CPH-07-TISSUE           50      43     21     25     7         26          0
+  CPH-08-TISSUE           38     114     73     26    16         46          0
+  CPH-09-TISSUE           24      46     27     23     7         24          0
+  KESKIN_13240-002         0       2      0      0     1          0          0
+  KESKIN_13240-005         7       3     23      4     8          1          0
+  KESKIN_13240-006         6       4      0      4     0          0          0
+  KESKIN_13240-015         6      16      2      0     2          0          0
+  KESKIN_CP-594_V1         2      14      3      0     0          1          0
+  KESKIN_DFCI-5283         2       6      2      4     1          0          0
+  KESKIN_DFCI-5328         1       1      0      0     0          0          0
+  KESKIN_DFCI-5341         6       6      1      0     1          1          0
+  KESKIN_H4198_BT187       3      19     18     11    18          1          0
+  KESKIN_H4512_BT145       7      42     34      4    11          3          0
+  LEIDEN-004-TISSUE       38      46     23     14    12         22          0
+  LEIDEN-005-TISSUE       43      50     29     17    18         27          0
+                    
+                     HLA-A02:01 HLA-A02:03 HLA-A02:04 HLA-A02:05 HLA-A02:07
+  10-002-S1-TISSUE            0          1          1          2          3
+  11-002-S1-TISSUE           39          9         14          5         13
+  29/14-TISSUE                1          5          1          0          7
+  637/13-TISSUE             516        129        172         17        122
+  BCN-018-TISSUE              0          0          1          0          3
+  CPH-07-TISSUE               0          2          5          1          6
+  CPH-08-TISSUE             102         25         37          3         28
+  CPH-09-TISSUE               0          2          6          0          5
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            6          0          0          0          0
+  KESKIN_13240-006            0          2          5          0          1
+  KESKIN_13240-015            0         21         22          1         25
+  KESKIN_CP-594_V1            1          1          6          0          4
+  KESKIN_DFCI-5283            0         16         28          0         35
+  KESKIN_DFCI-5328            1          0          0          0          0
+  KESKIN_DFCI-5341            2          1          0          0          1
+  KESKIN_H4198_BT187         18          3          4          0          3
+  KESKIN_H4512_BT145         93         15         19          3         13
+  LEIDEN-004-TISSUE           0          0          4          1          6
+  LEIDEN-005-TISSUE           1          0          3          0          2
+                    
+                     HLA-A02:14 HLA-A03:01 HLA-A03:02 HLA-A11:01 HLA-A23:01
+  10-002-S1-TISSUE            0         14          0         11          1
+  11-002-S1-TISSUE            0          0          0          2          1
+  29/14-TISSUE                0         23          0         23         57
+  637/13-TISSUE               2         32          0         18          0
+  BCN-018-TISSUE              0         22          0          9          5
+  CPH-07-TISSUE               0         30          0         27          7
+  CPH-08-TISSUE               0         31          0         23          6
+  CPH-09-TISSUE               0         29          0         25          7
+  KESKIN_13240-002            0          1          0          1          1
+  KESKIN_13240-005            0          2          0          1          0
+  KESKIN_13240-006            0          0          0          1          0
+  KESKIN_13240-015            0          0          0          0          0
+  KESKIN_CP-594_V1            0          0          1          0          0
+  KESKIN_DFCI-5283            0          2          0          2          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          0          7          0          0          0
+  KESKIN_H4512_BT145          0          4          0          0          0
+  LEIDEN-004-TISSUE           0          0          0         14          1
+  LEIDEN-005-TISSUE           0         16          0         14          2
+                    
+                     HLA-A24:02 HLA-A24:06 HLA-A24:13 HLA-A26:01 HLA-A29:02
+  10-002-S1-TISSUE           22          2          1          0         11
+  11-002-S1-TISSUE            0          0          2          1         18
+  29/14-TISSUE              843         72         81          2         96
+  637/13-TISSUE               1          0          0          1         26
+  BCN-018-TISSUE             36          2          4          0        119
+  CPH-07-TISSUE              64          8          8          4         37
+  CPH-08-TISSUE              86         14         15         11         52
+  CPH-09-TISSUE              70          7          9          2         30
+  KESKIN_13240-002            0          0          0          0          3
+  KESKIN_13240-005            1          0          0          0          4
+  KESKIN_13240-006            0          0          0          0          2
+  KESKIN_13240-015            1          0          0          0          1
+  KESKIN_CP-594_V1            0          0          0          0          2
+  KESKIN_DFCI-5283            1          0          0          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          2          0          0          0         49
+  KESKIN_H4512_BT145          2          0          0          0          6
+  LEIDEN-004-TISSUE          47          5          6          2         20
+  LEIDEN-005-TISSUE          73          5          4          6         40
+                    
+                     HLA-A30:01 HLA-A30:02 HLA-A30:03 HLA-A31:01 HLA-A32:01
+  10-002-S1-TISSUE            0          0          0          0          5
+  11-002-S1-TISSUE            0          0          0          1          5
+  29/14-TISSUE                0          0          0          2          0
+  637/13-TISSUE               0          1          0          4         82
+  BCN-018-TISSUE              0          0          0          0          2
+  CPH-07-TISSUE               0          0          0          2          4
+  CPH-08-TISSUE               0          1          2          4          2
+  CPH-09-TISSUE               0          0          0          3          2
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          0          0          0
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            0          0          0          0          1
+  KESKIN_CP-594_V1            1          0          0          0          0
+  KESKIN_DFCI-5283            0          0          0         35          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          0          0          0          0          0
+  KESKIN_H4512_BT145          0          0          0          0          0
+  LEIDEN-004-TISSUE           0          1          0          1          2
+  LEIDEN-005-TISSUE           0          1          0          1          3
+                    
+                     HLA-A66:01 HLA-A66:02 HLA-A68:01 HLA-A68:02 HLA-B07:02
+  10-002-S1-TISSUE            1          0          0          2         13
+  11-002-S1-TISSUE            0          0          0          7         28
+  29/14-TISSUE                0          0          1         11        104
+  637/13-TISSUE               0          0          2         20         19
+  BCN-018-TISSUE              2          0          2         11          0
+  CPH-07-TISSUE               2          1          1         12         31
+  CPH-08-TISSUE               0          1          1         16         32
+  CPH-09-TISSUE               1          1          0         12         21
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          0          0         20
+  KESKIN_13240-006            0          0          0          1          1
+  KESKIN_13240-015            0          0          0          9          0
+  KESKIN_CP-594_V1            0          0          0          4         12
+  KESKIN_DFCI-5283            0          1          0          8          2
+  KESKIN_DFCI-5328            0          0          0          1          0
+  KESKIN_DFCI-5341            0          0          0          4          6
+  KESKIN_H4198_BT187          0          0          0          1          5
+  KESKIN_H4512_BT145          0          0          0          8          0
+  LEIDEN-004-TISSUE           2          0          1          8          0
+  LEIDEN-005-TISSUE           1          0          0         12         47
+                    
+                     HLA-B08:01 HLA-B13:01 HLA-B13:02 HLA-B14:02 HLA-B15:01
+  10-002-S1-TISSUE            7          0          0          1          8
+  11-002-S1-TISSUE            7          0          0          2         17
+  29/14-TISSUE              298          0          0         10         19
+  637/13-TISSUE               0          0          2          0         60
+  BCN-018-TISSUE              2          0          0          0         27
+  CPH-07-TISSUE              11          1          0          1         24
+  CPH-08-TISSUE              26          0          0          2         40
+  CPH-09-TISSUE              15          1          0          1         18
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            6          0          0          0          6
+  KESKIN_13240-006            1          0          0          0          1
+  KESKIN_13240-015            2         10          0          0          3
+  KESKIN_CP-594_V1            5          0          0          0          1
+  KESKIN_DFCI-5283            4          2          0          0          2
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            4          0          0          0          0
+  KESKIN_H4198_BT187          2          0          0          1          0
+  KESKIN_H4512_BT145          0          6          0          1         10
+  LEIDEN-004-TISSUE          21          0          1          3         13
+  LEIDEN-005-TISSUE          16          0          0          2         26
+                    
+                     HLA-B15:02 HLA-B15:03 HLA-B15:09 HLA-B15:10 HLA-B15:11
+  10-002-S1-TISSUE            4          0          0          0          1
+  11-002-S1-TISSUE            5          0          0          0          4
+  29/14-TISSUE               15          1          0          0          9
+  637/13-TISSUE               8          0          1          0          4
+  BCN-018-TISSUE              7          0          1          0          4
+  CPH-07-TISSUE              20          0          0          0          8
+  CPH-08-TISSUE              12          0          0          0          3
+  CPH-09-TISSUE               4          0          0          0          2
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            1          0          0          0          0
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            2          0          0          0          0
+  KESKIN_CP-594_V1            0          0          0          0          3
+  KESKIN_DFCI-5283            2          0          0          0          1
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            2          0          0          0          3
+  KESKIN_H4198_BT187         32          0          0          0          3
+  KESKIN_H4512_BT145          0          0          0          0          0
+  LEIDEN-004-TISSUE           3          0          0          1          3
+  LEIDEN-005-TISSUE          15          0          1          0          8
+                    
+                     HLA-B18:01 HLA-B18:03 HLA-B27:01 HLA-B27:02 HLA-B27:03
+  10-002-S1-TISSUE            2          0          4          4          2
+  11-002-S1-TISSUE            2          0          4          1          0
+  29/14-TISSUE                8          0         21          6          5
+  637/13-TISSUE              13          3          9          4          4
+  BCN-018-TISSUE              5          0          0          0          0
+  CPH-07-TISSUE               8          1          0          0          0
+  CPH-08-TISSUE              14          4         38         13         14
+  CPH-09-TISSUE              10          2          0          0          0
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          3          2          0
+  KESKIN_13240-006            0          0          2          0          0
+  KESKIN_13240-015            0          0          2          2          0
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            0          0          3          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          0          0          0          0          0
+  KESKIN_H4512_BT145          2          0          2          1          0
+  LEIDEN-004-TISSUE           5          2         12          4          2
+  LEIDEN-005-TISSUE           0          4          6          3          2
+                    
+                     HLA-B27:04 HLA-B27:05 HLA-B27:06 HLA-B27:07 HLA-B27:08
+  10-002-S1-TISSUE            2         10          2          3          4
+  11-002-S1-TISSUE            0         10          0          0          1
+  29/14-TISSUE                4         22          3          4          4
+  637/13-TISSUE               3         29          2          2          2
+  BCN-018-TISSUE              0          0          0          0          0
+  CPH-07-TISSUE               0          0          0          0          0
+  CPH-08-TISSUE               9         51         10         11         12
+  CPH-09-TISSUE               0          0          0          0          0
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            1          4          1          3          2
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            0          3          1          2          2
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            0          0          0          1          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          0          2          0          0          0
+  KESKIN_H4512_BT145          0          6          0          2          2
+  LEIDEN-004-TISSUE           1         16          2          2          2
+  LEIDEN-005-TISSUE           2         10          2          4          4
+                    
+                     HLA-B27:09 HLA-B27:10 HLA-B35:01 HLA-B35:02 HLA-B35:03
+  10-002-S1-TISSUE            7          0         13          1          3
+  11-002-S1-TISSUE           10          0         21          0          0
+  29/14-TISSUE               20          0         31          2          8
+  637/13-TISSUE              31          0         13          0          2
+  BCN-018-TISSUE              1          0          8          0          1
+  CPH-07-TISSUE               1          0          3          1          3
+  CPH-08-TISSUE              38          2         32          0         10
+  CPH-09-TISSUE               1          0         20          0          3
+  KESKIN_13240-002            1          0          0          0          0
+  KESKIN_13240-005            9          0          0          0          0
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            6          0          0          0          0
+  KESKIN_CP-594_V1            0          0         11          1          0
+  KESKIN_DFCI-5283            0          0          5          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            3          0         10          0          6
+  KESKIN_H4198_BT187          4          0          4          0          0
+  KESKIN_H4512_BT145         14          0          0          0          0
+  LEIDEN-004-TISSUE          15          0         13          0          2
+  LEIDEN-005-TISSUE           9          0          5          1          5
+                    
+                     HLA-B35:04 HLA-B35:06 HLA-B35:08 HLA-B37:01 HLA-B39:01
+  10-002-S1-TISSUE            0          1          4          0          2
+  11-002-S1-TISSUE            0          0          0          0          3
+  29/14-TISSUE                1          2          4          0          3
+  637/13-TISSUE               0          0          3          0          5
+  BCN-018-TISSUE              0          0          2          0          3
+  CPH-07-TISSUE               0          1          5          0          6
+  CPH-08-TISSUE               0          0          2          0         17
+  CPH-09-TISSUE               0          0          0          0          5
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          0          0         15
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            0          0          0          0          0
+  KESKIN_CP-594_V1            0          0          1          0          0
+  KESKIN_DFCI-5283            0          0          1          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          1          0          0
+  KESKIN_H4198_BT187          0          0          0          0          0
+  KESKIN_H4512_BT145          0          0          0          1          0
+  LEIDEN-004-TISSUE           0          0          0          0          5
+  LEIDEN-005-TISSUE           0          1          1          0          9
+                    
+                     HLA-B39:06 HLA-B39:10 HLA-B39:24 HLA-B40:01 HLA-B40:02
+  10-002-S1-TISSUE            0          1          0          5         11
+  11-002-S1-TISSUE            0          0          0          3          2
+  29/14-TISSUE                0          1          2          0          4
+  637/13-TISSUE               0          0          1        153        171
+  BCN-018-TISSUE              0          0          0          4         11
+  CPH-07-TISSUE               0          0          2         13         24
+  CPH-08-TISSUE               5          0          0         27          0
+  CPH-09-TISSUE               0          0          0          6         23
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            9          0          1          0          0
+  KESKIN_13240-006            0          0          0         12         52
+  KESKIN_13240-015            0          0          0          4          0
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            0          0          2          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          1
+  KESKIN_H4198_BT187          0          0          0          0          5
+  KESKIN_H4512_BT145          0          0          1         17          0
+  LEIDEN-004-TISSUE           0          0          2         10         26
+  LEIDEN-005-TISSUE           0          0          2         13         23
+                    
+                     HLA-B41:01 HLA-B41:02 HLA-B41:03 HLA-B41:04 HLA-B44:02
+  10-002-S1-TISSUE            0          0          0          0          6
+  11-002-S1-TISSUE            0          0          0          0          0
+  29/14-TISSUE                0          0          0          0          7
+  637/13-TISSUE               4          3          5          2         38
+  BCN-018-TISSUE              2          0          0          0          9
+  CPH-07-TISSUE               1          0          0          0          9
+  CPH-08-TISSUE              12          0          1          0         34
+  CPH-09-TISSUE               4          0          1          0          0
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          0          0          0
+  KESKIN_13240-006            0          0          0          0         10
+  KESKIN_13240-015            1          0          0          1          0
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            0          0          0          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          1
+  KESKIN_H4198_BT187          0          0          0          0          7
+  KESKIN_H4512_BT145          2          0          0          0         14
+  LEIDEN-004-TISSUE           2          0          0          0         12
+  LEIDEN-005-TISSUE           4          0          0          0         15
+                    
+                     HLA-B44:03 HLA-B44:08 HLA-B44:09 HLA-B44:27 HLA-B44:28
+  10-002-S1-TISSUE            7          0          0          2          0
+  11-002-S1-TISSUE            5          0          0          0          0
+  29/14-TISSUE               13          0          2          0          0
+  637/13-TISSUE              54          2          9          4          2
+  BCN-018-TISSUE             12          0          2          0          0
+  CPH-07-TISSUE              12          0          0          0          0
+  CPH-08-TISSUE              35          0          3          6          4
+  CPH-09-TISSUE              16          0          1          0          0
+  KESKIN_13240-002            2          0          0          0          0
+  KESKIN_13240-005            0          0          0          0          0
+  KESKIN_13240-006            9          0          0          0          0
+  KESKIN_13240-015            2          0          0          0          0
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            0          0          0          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          7          0          3          0          0
+  KESKIN_H4512_BT145         14          0          0          0          0
+  LEIDEN-004-TISSUE          17          0          2          0          0
+  LEIDEN-005-TISSUE          22          0          2          2          1
+                    
+                     HLA-B45:01 HLA-B46:01 HLA-B49:01 HLA-B50:01 HLA-B51:01
+  10-002-S1-TISSUE            1          4          0          1         13
+  11-002-S1-TISSUE            0          5          2          0         12
+  29/14-TISSUE                1          5          1          2        498
+  637/13-TISSUE               4         17         15          7          0
+  BCN-018-TISSUE              2          4          1          4          5
+  CPH-07-TISSUE               0          5          3          4         29
+  CPH-08-TISSUE              17         12          2         11         24
+  CPH-09-TISSUE               6          5          2          4         17
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          0          0         16
+  KESKIN_13240-006            1          0          0          0          0
+  KESKIN_13240-015            0          0          0          0          2
+  KESKIN_CP-594_V1            0          0          0          0          6
+  KESKIN_DFCI-5283            0          0          0          0          3
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          1
+  KESKIN_H4198_BT187          0         39          0          1          0
+  KESKIN_H4512_BT145          5          1          1          1          3
+  LEIDEN-004-TISSUE           4          4          6          3         14
+  LEIDEN-005-TISSUE           6          8          2          3         21
+                    
+                     HLA-B51:02 HLA-B51:08 HLA-B52:01 HLA-B54:01 HLA-B56:01
+  10-002-S1-TISSUE            0          5          0          1          0
+  11-002-S1-TISSUE            0          4          0          2          2
+  29/14-TISSUE                1        137          1         31         12
+  637/13-TISSUE               0          1          0          4          3
+  BCN-018-TISSUE              0          4          0          0          0
+  CPH-07-TISSUE               0         11          0          4          3
+  CPH-08-TISSUE               0         10          0          4          4
+  CPH-09-TISSUE               0          7          0          1          1
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          9          0         13          0
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            0          0          0          0          0
+  KESKIN_CP-594_V1            0          3          0          1          0
+  KESKIN_DFCI-5283            0          0          0          2          0
+  KESKIN_DFCI-5328            0          1          0          0          0
+  KESKIN_DFCI-5341            0          0          0          0          0
+  KESKIN_H4198_BT187          0          1          0          0          0
+  KESKIN_H4512_BT145          1          0          0          1          0
+  LEIDEN-004-TISSUE           0          7          0          2          1
+  LEIDEN-005-TISSUE           0          6          0          3          2
+                    
+                     HLA-B57:01 HLA-B57:02 HLA-B57:03 HLA-B58:01 HLA-B58:02
+  10-002-S1-TISSUE            4          0          5          0          0
+  11-002-S1-TISSUE            6          0          9          3          0
+  29/14-TISSUE               17          0         12          7          0
+  637/13-TISSUE              48          1         30         25          0
+  BCN-018-TISSUE             15          0         12         11          0
+  CPH-07-TISSUE               8          0          5          2          0
+  CPH-08-TISSUE              13          0          5          2          0
+  CPH-09-TISSUE               9          0          4          2          0
+  KESKIN_13240-002            1          0          0          0          0
+  KESKIN_13240-005            2          1          2          2          0
+  KESKIN_13240-006            0          0          0          2          0
+  KESKIN_13240-015            0          0          1          0          0
+  KESKIN_CP-594_V1            0          0          0          0          0
+  KESKIN_DFCI-5283            3          0          1          1          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            2          0          0          0          0
+  KESKIN_H4198_BT187         21          0         11          2          0
+  KESKIN_H4512_BT145          7          0          3          2          0
+  LEIDEN-004-TISSUE          10          1          5          6          0
+  LEIDEN-005-TISSUE          15          0         12          7          1
+                    
+                     HLA-B73:01 HLA-C01:02 HLA-C02:02 HLA-C03:03 HLA-C03:04
+  10-002-S1-TISSUE            0          0          5          3          5
+  11-002-S1-TISSUE            0          1         16         11         15
+  29/14-TISSUE                0         48         20          4          0
+  637/13-TISSUE               0          0         16         35         51
+  BCN-018-TISSUE              0          0         16          8         11
+  CPH-07-TISSUE               0          1          0          1          3
+  CPH-08-TISSUE               0          4          0          5          5
+  CPH-09-TISSUE               0          1          0          3          4
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            0          0          1          1          0
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            0          3          0          0          1
+  KESKIN_CP-594_V1            0          1          1          0          0
+  KESKIN_DFCI-5283            0          1          4          2          4
+  KESKIN_DFCI-5328            0          0          0          0          1
+  KESKIN_DFCI-5341            0          1          1          0          1
+  KESKIN_H4198_BT187          0          4         34          0          0
+  KESKIN_H4512_BT145          0          2          0          1          1
+  LEIDEN-004-TISSUE           0          1          8          2          5
+  LEIDEN-005-TISSUE           1          2          7          6         12
+                    
+                     HLA-C04:01 HLA-C05:01 HLA-C06:02 HLA-C07:01 HLA-C07:02
+  10-002-S1-TISSUE            3          1          0          0          2
+  11-002-S1-TISSUE            7         14          4          3          6
+  29/14-TISSUE               25         12          1         13         43
+  637/13-TISSUE               5         79         22          0          2
+  BCN-018-TISSUE              2          6          4          0          4
+  CPH-07-TISSUE               0          9          6          1          2
+  CPH-08-TISSUE              18         25         11          7         11
+  CPH-09-TISSUE               1          0          5          1          3
+  KESKIN_13240-002            0          0          1          1          0
+  KESKIN_13240-005            2          3          1          5          3
+  KESKIN_13240-006            0          0          0          0          0
+  KESKIN_13240-015            1          6          0          0          2
+  KESKIN_CP-594_V1            5          0          1          0          2
+  KESKIN_DFCI-5283            0          7          2          0          0
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          1          0          0          0
+  KESKIN_H4198_BT187          1          6          0          0          3
+  KESKIN_H4512_BT145          2          8          0          3          2
+  LEIDEN-004-TISSUE           4          9          7          2          0
+  LEIDEN-005-TISSUE           0          9          4          4          1
+                    
+                     HLA-C08:02 HLA-C12:02 HLA-C12:03 HLA-C14:02 HLA-C15:02
+  10-002-S1-TISSUE            1          0          7          7          8
+  11-002-S1-TISSUE            5          1          0          7         11
+  29/14-TISSUE                5          0         14        107          2
+  637/13-TISSUE              18          0         19          1         23
+  BCN-018-TISSUE              3          0         12         10         20
+  CPH-07-TISSUE               5          1          7         13          6
+  CPH-08-TISSUE              12          1          0         16          5
+  CPH-09-TISSUE               1          1         12         11          7
+  KESKIN_13240-002            0          0          0          0          0
+  KESKIN_13240-005            1          0          1          0          2
+  KESKIN_13240-006            0          0          0          0          2
+  KESKIN_13240-015            8          0          5          0         12
+  KESKIN_CP-594_V1            2          0          0          4          1
+  KESKIN_DFCI-5283            8          0          1          0          3
+  KESKIN_DFCI-5328            0          0          0          0          0
+  KESKIN_DFCI-5341            0          0          1          0          0
+  KESKIN_H4198_BT187          4          0          7          1          1
+  KESKIN_H4512_BT145          4          0          4          1         17
+  LEIDEN-004-TISSUE           3          0          0          9          5
+  LEIDEN-005-TISSUE           5          1          0         10          6
+                    
+                     HLA-C16:01 HLA-C17:01   JY Line.1 Line.10 Line.11 Line.12
+  10-002-S1-TISSUE           11          2    7      3      10      14       9
+  11-002-S1-TISSUE           27          4   20      4       5      17      14
+  29/14-TISSUE               39          1   27    177     310     361     262
+  637/13-TISSUE              23         15  171      5      16      55      38
+  BCN-018-TISSUE             14          2    2      3      11      31      17
+  CPH-07-TISSUE              18          0   12     12      44      65      95
+  CPH-08-TISSUE              15          0   54     16      92     158      63
+  CPH-09-TISSUE              15          1   16      9      28      48      32
+  KESKIN_13240-002            0          0    0      0       0      25       1
+  KESKIN_13240-005            2          0    2     17      32      40      21
+  KESKIN_13240-006            1          0    2      0       0       0       2
+  KESKIN_13240-015            4          1    0      0       2       3       3
+  KESKIN_CP-594_V1            2          1    6      0       0       1       1
+  KESKIN_DFCI-5283            4          0    8      1       7       1       1
+  KESKIN_DFCI-5328            0          0    1      0       1       0       0
+  KESKIN_DFCI-5341            1          1    4      0       0       0       2
+  KESKIN_H4198_BT187         12          1    1     19      43     307      31
+  KESKIN_H4512_BT145          2          0   15     17      31      52      30
+  LEIDEN-004-TISSUE          13          3    8      9      22      26      19
+  LEIDEN-005-TISSUE          15          1   21     18      88     117     104
+                    
+                     Line.13 Line.14 Line.15 Line.16 Line.17 Line.18 Line.19
+  10-002-S1-TISSUE         4       3       9       2      17       5       1
+  11-002-S1-TISSUE         3       4       9       4      36       8       8
+  29/14-TISSUE             6       5       9      26     142      13       4
+  637/13-TISSUE           66      26      69      41     180     115      29
+  BCN-018-TISSUE           2       2      10       4      25      11       5
+  CPH-07-TISSUE            6       2      14       3      34      23       6
+  CPH-08-TISSUE           17      15      34      22     144      43      12
+  CPH-09-TISSUE            9       3      14       6      31      17       2
+  KESKIN_13240-002         1       0       1       2       3      14       3
+  KESKIN_13240-005         0       0       1       1      67       0       0
+  KESKIN_13240-006        30       0       2       2       3       3       0
+  KESKIN_13240-015        12       0       3       2      11       2       4
+  KESKIN_CP-594_V1         1       0       2       0       4       0       2
+  KESKIN_DFCI-5283         5       0       2       0      11       0       0
+  KESKIN_DFCI-5328         1       0       0       0       0       0       0
+  KESKIN_DFCI-5341         0       0       0       0       2       0       0
+  KESKIN_H4198_BT187       0       1       3       4      32     100       1
+  KESKIN_H4512_BT145      21       7      11       3      14      15       5
+  LEIDEN-004-TISSUE        4       3      14      10      36       9       4
+  LEIDEN-005-TISSUE        6       5      20       6      57      37       5
+                    
+                     Line.2 Line.20 Line.21 Line.22 Line.23 Line.24 Line.25
+  10-002-S1-TISSUE        4      14       5      16      10       7      20
+  11-002-S1-TISSUE        3      25       4       9       9       7      54
+  29/14-TISSUE          173      18      17      22     221      14     304
+  637/13-TISSUE           6     219      54      63       7      20      53
+  BCN-018-TISSUE          6      24      10      13       3      11      20
+  CPH-07-TISSUE          23      46      26      27      24      33      69
+  CPH-08-TISSUE          24      91      32      41      29      14      61
+  CPH-09-TISSUE          20      44      12      20      13      10      35
+  KESKIN_13240-002        0       1       2       0       2       7       0
+  KESKIN_13240-005        5       1       1       0      17       0       8
+  KESKIN_13240-006        0       6       0       3       0       0       1
+  KESKIN_13240-015        0      13       6      18       0       0       0
+  KESKIN_CP-594_V1        0       3       0       2       1       0      11
+  KESKIN_DFCI-5283        3      12       3       8       2       1       1
+  KESKIN_DFCI-5328        0       0       0       0       3       0       5
+  KESKIN_DFCI-5341        1       2       1       0       0       4      24
+  KESKIN_H4198_BT187      8      10      31      10       0      32      49
+  KESKIN_H4512_BT145      8      32      11      32       0       0       0
+  LEIDEN-004-TISSUE      13      41      11      22      13       4      42
+  LEIDEN-005-TISSUE      26      37      33      16      25      31      93
+                    
+                     Line.26 Line.27 Line.28 Line.29 Line.3 Line.30 Line.31
+  10-002-S1-TISSUE         3       5       9      23     17       4      18
+  11-002-S1-TISSUE         4       7      12      38     30       5      21
+  29/14-TISSUE            48     158      65      45    450       8      83
+  637/13-TISSUE           18       5      46      71     20      16      26
+  BCN-018-TISSUE           5       4      18      23     24       4      15
+  CPH-07-TISSUE            8       8      16      61    113       5     126
+  CPH-08-TISSUE           14      23      44     119     65       3      50
+  CPH-09-TISSUE            9      10      20      47     38       5      34
+  KESKIN_13240-002         0       2       2       2      1       2       2
+  KESKIN_13240-005         5       4      18       0     30       9       1
+  KESKIN_13240-006         0       0       1       1      0       0       0
+  KESKIN_13240-015         0       0       5       8      0       0       3
+  KESKIN_CP-594_V1         1       1       2       7      4       5       6
+  KESKIN_DFCI-5283         0       1       0       0     17       6       1
+  KESKIN_DFCI-5328         0       0       0       0      2       0       0
+  KESKIN_DFCI-5341         0       0       0      27      9       8       5
+  KESKIN_H4198_BT187       9       1       8      22     40       2       5
+  KESKIN_H4512_BT145       0       0      10      10     32       0      26
+  LEIDEN-004-TISSUE        6      12      18      44     38       8      24
+  LEIDEN-005-TISSUE       14      11      21      81    130       6     141
+                    
+                     Line.32 Line.33 Line.34 Line.35 Line.36 Line.37 Line.38
+  10-002-S1-TISSUE         6      13      30       8      22       4      12
+  11-002-S1-TISSUE         3       7      56       5      45      13      27
+  29/14-TISSUE            83     386     736      93     305     100      30
+  637/13-TISSUE            7       8      22      14      36      56     169
+  BCN-018-TISSUE          11      12      41       4      31      23      50
+  CPH-07-TISSUE           15      21     224       5      60      58      31
+  CPH-08-TISSUE           15      39     114      23     166      28      84
+  CPH-09-TISSUE           13      23      62       6      55      14      53
+  KESKIN_13240-002         0       4       5       4       3       0       4
+  KESKIN_13240-005        11      28      41       0       8       6       1
+  KESKIN_13240-006         0       0       0       0       1       0       6
+  KESKIN_13240-015         0       1       0       1       3       1      14
+  KESKIN_CP-594_V1         0       3      18       0      10       2       3
+  KESKIN_DFCI-5283         1       1       6       0       3       3      13
+  KESKIN_DFCI-5328         1       0       2       0       0       2       0
+  KESKIN_DFCI-5341         0       1       7       0       1       2       1
+  KESKIN_H4198_BT187       1      48      83      23      17       4      13
+  KESKIN_H4512_BT145       0      31      70       0      19       6      40
+  LEIDEN-004-TISSUE       13      18      50       9      53       7      30
+  LEIDEN-005-TISSUE       13      32     240       9     135      53      34
+                    
+                     Line.39 Line.4 Line.40 Line.41 Line.42 Line.43 Line.44
+  10-002-S1-TISSUE        13      8      17      10       5       2       8
+  11-002-S1-TISSUE        22      4      23      20       3       2      12
+  29/14-TISSUE            50    252      51     133      26       3     248
+  637/13-TISSUE           61     33      58     129       5       5     151
+  BCN-018-TISSUE          48      7      48      14       8       1      11
+  CPH-07-TISSUE           35     33     106      18      56       0      29
+  CPH-08-TISSUE           75     34      73      64      17       2      66
+  CPH-09-TISSUE           28     16      40      20      13       2      23
+  KESKIN_13240-002         1      7       3       3       1       0       0
+  KESKIN_13240-005         6     21       3       3       0       0      16
+  KESKIN_13240-006         2      0       1       3       0       0       0
+  KESKIN_13240-015         8      5      10      32       0       0       8
+  KESKIN_CP-594_V1         3      0       5       5       3       0       0
+  KESKIN_DFCI-5283         3      1       2       3       1       0       1
+  KESKIN_DFCI-5328         0      0       0       0       0       0       0
+  KESKIN_DFCI-5341         0      0       8       1       1       0       2
+  KESKIN_H4198_BT187      17    125      15      30       6       0      37
+  KESKIN_H4512_BT145      17     17      23      84       0       0      47
+  LEIDEN-004-TISSUE       42     11      33      20       5       2      21
+  LEIDEN-005-TISSUE       45     30     115      42      50       0      37
+                    
+                     Line.45 Line.46 Line.47 Line.48 Line.49 Line.5 Line.50
+  10-002-S1-TISSUE        19      15       1      27      13     10       4
+  11-002-S1-TISSUE        21      26       1      20      12      3       7
+  29/14-TISSUE           347      20       2     138      22    305       9
+  637/13-TISSUE           31     238      11      30      25     28      15
+  BCN-018-TISSUE          24      19       1      28      22     13       4
+  CPH-07-TISSUE           55      41       4      46      40     39      18
+  CPH-08-TISSUE           72      92       8     183     171     37      14
+  CPH-09-TISSUE           31      48       7      46      26     28       6
+  KESKIN_13240-002         2       2       0       1       3      0       2
+  KESKIN_13240-005        35       2       0     109      49     39       0
+  KESKIN_13240-006         1      13       0       0       1      0       0
+  KESKIN_13240-015         3      20       1       3       6      2       0
+  KESKIN_CP-594_V1        11       1       0       2       2      0       1
+  KESKIN_DFCI-5283         7      30       1      27       0      2       0
+  KESKIN_DFCI-5328         0       0       0       4       0      0       0
+  KESKIN_DFCI-5341        15       8       1       7       4      0       1
+  KESKIN_H4198_BT187      38      15       3       8       9     50       0
+  KESKIN_H4512_BT145      38      35       9       4      12     35       0
+  LEIDEN-004-TISSUE       43      41       6      36      25     16       5
+  LEIDEN-005-TISSUE       64      44       7      57      63     55      18
+                    
+                     Line.51 Line.52 Line.53 Line.54 Line.55 Line.6 Line.7
+  10-002-S1-TISSUE         5       1      18       5       8     14      8
+  11-002-S1-TISSUE         6       1      27       4      43      8      6
+  29/14-TISSUE            21       6      35      10      30    282    251
+  637/13-TISSUE           35       4      25      17     147    143     21
+  BCN-018-TISSUE           9       3      14      10      15     13     12
+  CPH-07-TISSUE           11       7     142      27      50     27     25
+  CPH-08-TISSUE           26      16      42      21      51     53     22
+  CPH-09-TISSUE            8       3      25      14      29     24     18
+  KESKIN_13240-002         0       0       1       0       0      0      0
+  KESKIN_13240-005         0       0       0       0       5     16     32
+  KESKIN_13240-006         1       0       0       0       2      1      0
+  KESKIN_13240-015         4       0       0       0      30      8      0
+  KESKIN_CP-594_V1         0       0       3       0       7      0      0
+  KESKIN_DFCI-5283         0       0       2       2      13      7      2
+  KESKIN_DFCI-5328         0       0       0       0       0      1      1
+  KESKIN_DFCI-5341         0       0       8       1      14      1      0
+  KESKIN_H4198_BT187       5       0      13       2       7     31     51
+  KESKIN_H4512_BT145      14       3       8       2      60     30     38
+  LEIDEN-004-TISSUE        8       3      21       5      34     22     16
+  LEIDEN-005-TISSUE       17       2     133      28      68     31     28
+                    
+                     Line.8 Line.9 LNT-229 MAVER-1 MD155 Mel-12 Mel-15 Mel-16
+  10-002-S1-TISSUE       17     12      39      33    12     13     64     45
+  11-002-S1-TISSUE       29     20      63      28    35     22    155    111
+  29/14-TISSUE          729    547      99     442   255    753    186   1629
+  637/13-TISSUE           2     12     135      68   198     19    129     27
+  BCN-018-TISSUE         25     19      57      49    24     18     68     54
+  CPH-07-TISSUE          41     37     150      84    58     35    213    121
+  CPH-08-TISSUE          67     68     121     353    97     67    221    156
+  CPH-09-TISSUE          37     36      82      70    39     40    133    103
+  KESKIN_13240-002        2      3       3       3     1      0      1      5
+  KESKIN_13240-005       22     35       7     137     1     33     12     67
+  KESKIN_13240-006        0      0      14       6     0      1      6      3
+  KESKIN_13240-015        0      0       9       5     2      2      7      3
+  KESKIN_CP-594_V1       10      4      18       6     2      0     43     26
+  KESKIN_DFCI-5283       21      5       8       1     6     38     16     62
+  KESKIN_DFCI-5328        4      1       0       0     0      4      0      4
+  KESKIN_DFCI-5341        0      0       7       1     0      0     32      3
+  KESKIN_H4198_BT187     36     53      29      15   101     24     29     56
+  KESKIN_H4512_BT145     38     51      22       9    13     13     30     46
+  LEIDEN-004-TISSUE      44     33      49      60    27     51    120    126
+  LEIDEN-005-TISSUE      52     71     135     103    54     61    228    148
+                    
+                     Mel-5 Mel-624 Mel-8 pat-AC2 pat-C pat-CELG pat-CP2 pat-FL
+  10-002-S1-TISSUE      26      15    30      15    12       14      12     16
+  11-002-S1-TISSUE      31      15    29       7    15       24       4      4
+  29/14-TISSUE         605      22   640      26    64      251      32     35
+  637/13-TISSUE         48     123    35      93   103      156      32     54
+  BCN-018-TISSUE        34      17    30       9     6       30       8     26
+  CPH-07-TISSUE         64      21    77      19    26       38      22     40
+  CPH-08-TISSUE        176      40    96      51    45       71      34     61
+  CPH-09-TISSUE         80      16    59      24    23       26      17     30
+  KESKIN_13240-002       0       3     0       0     0        0       0      0
+  KESKIN_13240-005      16       1    26       1     4        3       0      0
+  KESKIN_13240-006       1      13     3       0     1        1       2      4
+  KESKIN_13240-015       1       2     0       0     0        4       0      0
+  KESKIN_CP-594_V1       3       0     6       1     1        1       0      2
+  KESKIN_DFCI-5283      33       2    20       0     8        6       2      5
+  KESKIN_DFCI-5328       2       0     1       0     0        0       0      0
+  KESKIN_DFCI-5341       1       0     1       0     0        0       0      0
+  KESKIN_H4198_BT187    22       4    22       1     1       19       4      6
+  KESKIN_H4512_BT145    15       9     9       5     4       18       3      6
+  LEIDEN-004-TISSUE     60      11    54      11    12       30      19     29
+  LEIDEN-005-TISSUE    159      14    85      17    29       34      13     29
+                    
+                     pat-J pat-JPB3 pat-JT2 pat-M pat-MA pat-ML pat-NS2 pat-NT
+  10-002-S1-TISSUE      11       11      12    13     11     11       2     12
+  11-002-S1-TISSUE      12       13       9     5     16     15       5      9
+  29/14-TISSUE          50       31      32   179     43     20       2    402
+  637/13-TISSUE         72      111      19    39    154    259      88    103
+  BCN-018-TISSUE         7        5      10    38     32     14       2      7
+  CPH-07-TISSUE         19       14      25    37     22     31       3     18
+  CPH-08-TISSUE         39       45      34    47     69     66      20     30
+  CPH-09-TISSUE         19       12      26    27     19     21       6     20
+  KESKIN_13240-002       0        0       0     0      1      0       0      0
+  KESKIN_13240-005       5        2       0     0      1      0       2      0
+  KESKIN_13240-006       1        2       1     3      3      3       0      1
+  KESKIN_13240-015       0        1       1     0      2      0       8      0
+  KESKIN_CP-594_V1       0        1       3     1      2      1       1      2
+  KESKIN_DFCI-5283       5        1       1     7      8      3       1     15
+  KESKIN_DFCI-5328       0        0       0     2      0      0       0      4
+  KESKIN_DFCI-5341       0        0       2     0      0      0       0      0
+  KESKIN_H4198_BT187     0        2       0     6     11      5       0      1
+  KESKIN_H4512_BT145     5        3       3     2     14      9      11      1
+  LEIDEN-004-TISSUE     12       19      10    23     26     25       3     29
+  LEIDEN-005-TISSUE     21       11      19    25     23     30       4     22
+                    
+                     pat-PF1 pat-R pat-RT pat-SR pat-ST PD42 RA957 RPMI8226
+  10-002-S1-TISSUE        13    13      6     11     13    6    30        6
+  11-002-S1-TISSUE        21     3     10     13      6   15    73       16
+  29/14-TISSUE           263   161    261    148    113  188    78       22
+  637/13-TISSUE          140    34    106    150     16   33   154       59
+  BCN-018-TISSUE          18    30     10     19      9   10    36       14
+  CPH-07-TISSUE           28    36     16     34     14   17   111       23
+  CPH-08-TISSUE           87    38     60     68     46   41   197       53
+  CPH-09-TISSUE           22    25     19     31     15   16    67       24
+  KESKIN_13240-002         0     0      0      0      0    1     0        1
+  KESKIN_13240-005         4     0      4      0      1   10    67       18
+  KESKIN_13240-006         3     3      0      1      0    0     4        0
+  KESKIN_13240-015         0     0      0      0      0    0     3        6
+  KESKIN_CP-594_V1         1     1      1      0      1    1    12        2
+  KESKIN_DFCI-5283         6     6      5      1      2    3    15        2
+  KESKIN_DFCI-5328         0     2      0      0      0    1     1        0
+  KESKIN_DFCI-5341         0     0      0      0      0    0    31        0
+  KESKIN_H4198_BT187       2     4      0      3      0    3    12       41
+  KESKIN_H4512_BT145      12     6     10      9      0    9    20        9
+  LEIDEN-004-TISSUE       30    20     21     23     13   23    61       11
+  LEIDEN-005-TISSUE       38    23     19     31     15   25   115       23
+                    
+                     SK-Mel-5 T98G THP-1 TIL1 TIL3 U-87
+  10-002-S1-TISSUE         17   17    25   18   36   21
+  11-002-S1-TISSUE         18   54    56   23   43   54
+  29/14-TISSUE             17   70   410   27  767   56
+  637/13-TISSUE           307  491   248  227   72  512
+  BCN-018-TISSUE           18   39    34   19   43   43
+  CPH-07-TISSUE            30  113   103   34   81  122
+  CPH-08-TISSUE            58  135   122  230  108  154
+  CPH-09-TISSUE            29  106    52   46   69  119
+  KESKIN_13240-002          0    7     3    0    8    9
+  KESKIN_13240-005          2   20     5  102   18    9
+  KESKIN_13240-006         20   16     8   10    1   36
+  KESKIN_13240-015          8   81     6    8    5   88
+  KESKIN_CP-594_V1          2   16    23    1    8   17
+  KESKIN_DFCI-5283          4   38    22   48    8   37
+  KESKIN_DFCI-5328          0    0     1    1    1    0
+  KESKIN_DFCI-5341          0    0     9    3    2    1
+  KESKIN_H4198_BT187        3    5    32    3  160   21
+  KESKIN_H4512_BT145       35   73    16   24   21   96
+  LEIDEN-004-TISSUE        20   67    42   27   62   79
+  LEIDEN-005-TISSUE        24   90   123   57  103  102
+> 
+> # conclusion: duplicated peptides do not match 1-1 in cell-line
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] dplyr_1.0.7       stringi_1.4.3     stringr_1.4.0     data.table_1.12.2
+
+loaded via a namespace (and not attached):
+ [1] fansi_0.4.0       utf8_1.1.4        crayon_1.3.4      R.methodsS3_1.8.1
+ [5] R6_2.4.0          lifecycle_1.0.0   magrittr_1.5      pillar_1.6.1     
+ [9] rlang_0.4.11      R.oo_1.24.0       R.utils_2.10.1    vctrs_0.3.8      
+[13] generics_0.1.0    ellipsis_0.3.2    tools_3.6.1       glue_1.4.2       
+[17] purrr_0.3.3       compiler_3.6.1    pkgconfig_2.0.2   tidyselect_1.1.1 
+[21] tibble_3.1.2     
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+107.834   3.208 104.514 

@@ -1,0 +1,419 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> # ------------------------------------------------------------------------------------
+> # MHCflurry-2.0 Test data for PEPPRMINT
+> # O'Donnell et al (2020)
+> #   1. Create test data for PEPPRMINT Prediction 
+> #   2. Format allele list file 
+> # ------------------------------------------------------------------------------------
+> library(data.table)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Warning message:
+package ‘dplyr’ was built under R version 3.6.2 
+> library(stringr)
+> 
+> # ------------------------------------------------------------------------------------
+> # Import data
+> # ------------------------------------------------------------------------------------
+> 
+> flurry = fread("../../../data/test_data/MHCflurry2/Data_S1.csv")
+> 
+> head(flurry)
+   protein_accession    peptide        sample_id        sample_group
+1:            J3KTA1  QLEDEALKY 10-002-S1-TISSUE MULTIALLELIC-RECENT
+2:        A0A1X7SBR3  ALAAELNQL 10-002-S1-TISSUE MULTIALLELIC-RECENT
+3:            Q8IY37  NLSQRVVSY 10-002-S1-TISSUE MULTIALLELIC-RECENT
+4:            C9JQJ4 ANLPNQVHRK 10-002-S1-TISSUE MULTIALLELIC-RECENT
+5:            F8VV91  KLIQLQFEV 10-002-S1-TISSUE MULTIALLELIC-RECENT
+6:            Q96EP9  SLWSLLVTL 10-002-S1-TISSUE MULTIALLELIC-RECENT
+           n_flank         c_flank hit
+1: RGCGGLKALFLKGCT IGAHCPELVTLNLQT   1
+2: ASYIEKVRFLEQQNK RAKEPTKLADVYQAE   1
+3: RVAAVAMSQRVAKEM QIRYEGNVTEETRIK   1
+4: PTQFINPETPGYVGF SVKKGFEFTLMVVGE   1
+5: SPNGKQLGEENSQNL XXXXXXXXXXXXXXX   1
+6: IRYKYSRVADYIVKV VVLFIMTGTMLGPEL   1
+                                                                       hla
+1: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+2: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+3: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+4: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+5: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+6: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+   netmhcpan4.ba netmhcpan4.ba_best_allele netmhcpan4.el
+1:  24848.000000               HLA-C*07:01    0.05972290
+2:     31.703125               HLA-A*02:01    0.88574219
+3:   9472.000000               HLA-C*07:01    0.12792969
+4:   8176.000000               HLA-A*31:01    0.03068542
+5:      4.601562               HLA-A*02:01    0.92578125
+6:      9.703125               HLA-A*02:01    0.90576172
+   netmhcpan4.el_best_allele  mixmhcpred mixmhcpred_best_allele mhcflurry2.ba
+1:               HLA-B*58:01 -0.00542450            HLA-B*58:01    3356.48684
+2:               HLA-A*02:01  0.55224609            HLA-A*02:01      34.46799
+3:               HLA-C*06:02  0.07666016            HLA-C*06:02     428.62201
+4:               HLA-A*31:01 -0.25561523            HLA-A*31:01    1591.80431
+5:               HLA-A*02:01  0.51660156            HLA-A*02:01      12.79790
+6:               HLA-A*02:01  0.73486328            HLA-A*02:01      16.99126
+   mhcflurry2.ba_best_allele mhcflurry2.ap.without_flanks
+1:               HLA-C*07:01                    0.1452523
+2:               HLA-A*02:01                    0.6582223
+3:               HLA-C*06:02                    0.6511001
+4:               HLA-A*31:01                    0.0274063
+5:               HLA-A*02:01                    0.4733204
+6:               HLA-A*02:01                    0.4495316
+   mhcflurry2.ap.with_flanks mhcflurry2.ps.without_flanks
+1:                 0.1441314                   0.04529345
+2:                 0.6381352                   0.96136403
+3:                 0.7949872                   0.67713383
+4:                 0.1297648                   0.06062312
+5:                 0.9283515                   0.97131651
+6:                 0.3713758                   0.95941260
+   mhcflurry2.ps.with_flanks
+1:                0.03981687
+2:                0.95905966
+3:                0.78515694
+4:                0.07508737
+5:                0.99463282
+6:                0.94418279
+> table(flurry$sample_group)
+
+   MULTIALLELIC-OLD MULTIALLELIC-RECENT 
+            6457400             2700700 
+> table(flurry$hit)
+
+      0       1 
+9066519   91581 
+> 
+> # ------------------------------------------------------------------------------------
+> # MA test set
+> # ------------------------------------------------------------------------------------
+> flurry1 = flurry[which(flurry$sample_group=="MULTIALLELIC-RECENT"),]
+> dim(flurry1)
+[1] 2700700      20
+> 
+> table(flurry1$hit)
+
+      0       1 
+2673693   27007 
+> table(flurry1$hit, flurry1$sample_id)
+   
+    10-002-S1-TISSUE 11-002-S1-TISSUE 29/14-TISSUE 637/13-TISSUE BCN-018-TISSUE
+  0            42669            93654       400851        236214          92565
+  1              431              946         4049          2386            935
+   
+    CPH-07-TISSUE CPH-08-TISSUE CPH-09-TISSUE KESKIN_13240-002 KESKIN_13240-005
+  0        179784        297792        151173            12474           100881
+  1          1816          3008          1527              126             1019
+   
+    KESKIN_13240-006 KESKIN_13240-015 KESKIN_CP-594_V1 KESKIN_DFCI-5283
+  0            54648           123552            47124            98010
+  1              552             1248              476              990
+   
+    KESKIN_DFCI-5328 KESKIN_DFCI-5341 KESKIN_H4198_BT187 KESKIN_H4512_BT145
+  0             3762            11880             203445             189189
+  1               38              120               2055               1911
+   
+    LEIDEN-004-TISSUE LEIDEN-005-TISSUE
+  0            129492            204534
+  1              1308              2066
+> 
+> flurry_MA = flurry1[,c("peptide", "hit", "sample_id")]
+> flurry_MA$length = nchar(flurry_MA$peptide)
+> table(flurry_MA$hit, flurry_MA$length)
+   
+         8      9     10     11
+  0 668528 668728 668250 668187
+  1   1699  18648   3907   2753
+> dim(flurry_MA)
+[1] 2700700       4
+> head(flurry_MA)
+      peptide hit        sample_id length
+1:  QLEDEALKY   1 10-002-S1-TISSUE      9
+2:  ALAAELNQL   1 10-002-S1-TISSUE      9
+3:  NLSQRVVSY   1 10-002-S1-TISSUE      9
+4: ANLPNQVHRK   1 10-002-S1-TISSUE     10
+5:  KLIQLQFEV   1 10-002-S1-TISSUE      9
+6:  SLWSLLVTL   1 10-002-S1-TISSUE      9
+> 
+> makerep = function(train.data){
++   #create 15 length representation for data 
++   train.data$length = nchar(train.data$peptide)
++   print(table(train.data$length))
++   train.data$peprep = NA
++   train.data$peprep[which(train.data$length==8)] = paste(
++     substr(train.data$peptide[which(train.data$length==8)], 1, 4), "XXXXXXX", 
++     substr(train.data$peptide[which(train.data$length==8)], 5, 8), sep="")
++   
++   train.data$peprep[which(train.data$length==9)] = paste(
++     substr(train.data$peptide[which(train.data$length==9)], 1, 4), "XXX", 
++     substr(train.data$peptide[which(train.data$length==9)], 5, 5), 
++     "XXX", substr(train.data$peptide[which(train.data$length==9)], 6, 9),
++     sep="")
++   
++   train.data$peprep[which(train.data$length==10)] = paste(
++     substr(train.data$peptide[which(train.data$length==10)], 1, 4), "XXX",
++     substr(train.data$peptide[which(train.data$length==10)], 5, 6), "XX",
++     substr(train.data$peptide[which(train.data$length==10)], 7, 10), sep="")
++   
++   train.data$peprep[which(train.data$length==11)] = paste(
++     substr(train.data$peptide[which(train.data$length==11)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==11)], 5, 7), "XX",
++     substr(train.data$peptide[which(train.data$length==11)], 8, 11), sep="")
++   
++   train.data$peprep[which(train.data$length==12)]=paste(
++     substr(train.data$peptide[which(train.data$length==12)], 1, 4), "XX", 
++     substr(train.data$peptide[which(train.data$length==12)], 5, 8), "X",
++     substr(train.data$peptide[which(train.data$length==12)], 9, 12), sep="")
++   
++   train.data$peprep[which(train.data$length==13)]=paste(
++     substr(train.data$peptide[which(train.data$length==13)], 1, 4), "X", 
++     substr(train.data$peptide[which(train.data$length==13)], 5, 9), "X",
++     substr(train.data$peptide[which(train.data$length==13)], 10, 13), sep="")
++   
++   train.data$peprep[which(train.data$length==14)] = paste(
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 1, 4), "X", 
++     substr(train.data$peptide[which(nchar(train.data$peptide)==14)], 5, 14), sep="")
++   
++   train.data$peprep[which(train.data$length==15)]=
++     train.data$peptide[which(train.data$length==15)]
++   
++   print(dim(train.data))
++   
++   
++   return(train.data)
++ }
+> 
+> test_pad = makerep(flurry_MA) 
+
+     8      9     10     11 
+670227 687376 672157 670940 
+[1] 2700700       5
+> head(test_pad)
+      peptide hit        sample_id length          peprep
+1:  QLEDEALKY   1 10-002-S1-TISSUE      9 QLEDXXXEXXXALKY
+2:  ALAAELNQL   1 10-002-S1-TISSUE      9 ALAAXXXEXXXLNQL
+3:  NLSQRVVSY   1 10-002-S1-TISSUE      9 NLSQXXXRXXXVVSY
+4: ANLPNQVHRK   1 10-002-S1-TISSUE     10 ANLPXXXNQXXVHRK
+5:  KLIQLQFEV   1 10-002-S1-TISSUE      9 KLIQXXXLXXXQFEV
+6:  SLWSLLVTL   1 10-002-S1-TISSUE      9 SLWSXXXLXXXLVTL
+> table(test_pad$hit)
+
+      0       1 
+2673693   27007 
+> 
+> # ------------------------------------------------------------------------------------
+> # Output test data files 
+> # ------------------------------------------------------------------------------------
+> dir1= "../../../data/test_data/MHCflurry2/"
+> 
+> cols2kp = c("peprep", "hit", "sample_id")
+> colsnms = c("peptide", "binder", "cell_line")
+> 
+> fnm = sprintf("%s/MHCflurry2_test_el_multi_HLA.txt", dir1)
+> write.table(test_pad[,..cols2kp], fnm, sep="\t", quote = FALSE, 
++             row.names = FALSE, col.names = colsnms)
+> system(sprintf("gzip %s", fnm))
+> 
+> 
+> # ------------------------------------------------------------------------------------
+> # Create allele-list file
+> # ------------------------------------------------------------------------------------
+> flurry2 = flurry1[,c("sample_id", "hla")]
+> head(flurry2)
+          sample_id
+1: 10-002-S1-TISSUE
+2: 10-002-S1-TISSUE
+3: 10-002-S1-TISSUE
+4: 10-002-S1-TISSUE
+5: 10-002-S1-TISSUE
+6: 10-002-S1-TISSUE
+                                                                       hla
+1: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+2: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+3: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+4: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+5: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+6: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+> flurry3 = distinct(flurry2)
+> flurry3
+             sample_id
+ 1:   10-002-S1-TISSUE
+ 2:   11-002-S1-TISSUE
+ 3:       29/14-TISSUE
+ 4:      637/13-TISSUE
+ 5:     BCN-018-TISSUE
+ 6:      CPH-07-TISSUE
+ 7:      CPH-08-TISSUE
+ 8:      CPH-09-TISSUE
+ 9:   KESKIN_13240-002
+10:   KESKIN_13240-005
+11:   KESKIN_13240-006
+12:   KESKIN_13240-015
+13:   KESKIN_CP-594_V1
+14:   KESKIN_DFCI-5283
+15:   KESKIN_DFCI-5328
+16:   KESKIN_DFCI-5341
+17: KESKIN_H4198_BT187
+18: KESKIN_H4512_BT145
+19:  LEIDEN-004-TISSUE
+20:  LEIDEN-005-TISSUE
+                                                                        hla
+ 1: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+ 2: HLA-A*03:01 HLA-A*24:02 HLA-B*35:03 HLA-B*44:02 HLA-C*12:03 HLA-C*12:03
+ 3: HLA-A*02:01 HLA-A*32:01 HLA-B*40:01 HLA-B*13:02 HLA-C*03:04 HLA-C*06:02
+ 4: HLA-A*01:01 HLA-A*24:02 HLA-B*51:01 HLA-B*08:01 HLA-C*07:01 HLA-C*01:02
+ 5: HLA-A*02:01 HLA-A*29:01 HLA-B*07:02 HLA-B*27:05 HLA-C*01:02 HLA-C*15:05
+ 6: HLA-A*02:01 HLA-A*02:01 HLA-B*35:01 HLA-B*27:05 HLA-C*02:02 HLA-C*04:01
+ 7: HLA-A*32:01 HLA-A*26:01 HLA-B*38:01 HLA-B*40:02 HLA-C*02:02 HLA-C*12:03
+ 8: HLA-A*02:01 HLA-A*32:01 HLA-B*27:05 HLA-B*44:02 HLA-C*05:01 HLA-C*02:02
+ 9: HLA-A*02:01 HLA-A*24:02 HLA-B*15:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:02
+10: HLA-A*01:01 HLA-A*01:01 HLA-B*38:01 HLA-B*56:01 HLA-C*01:02 HLA-C*06:02
+11: HLA-A*02:01 HLA-A*03:01 HLA-B*27:05 HLA-B*47:01 HLA-C*01:02 HLA-C*06:02
+12: HLA-A*02:01 HLA-A*02:02 HLA-B*13:02 HLA-B*40:02 HLA-C*02:02 HLA-C*06:02
+13: HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*44:02 HLA-C*05:01 HLA-C*12:03
+14: HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*08:01 HLA-C*07:01 HLA-C*07:02
+15: HLA-A*02:06 HLA-A*24:02 HLA-B*08:01 HLA-B*51:01 HLA-C*07:02 HLA-C*14:02
+16: HLA-A*03:01 HLA-A*31:01 HLA-B*14:02 HLA-B*35:02 HLA-C*04:01 HLA-C*08:02
+17: HLA-A*01:01 HLA-A*32:01 HLA-B*15:01 HLA-B*15:01 HLA-C*03:03 HLA-C*03:04
+18: HLA-A*01:01 HLA-A*32:01 HLA-B*13:02 HLA-B*40:02 HLA-C*02:02 HLA-C*06:02
+19: HLA-A*03:01 HLA-A*02:01 HLA-B*07:02 HLA-B*07:02 HLA-C*12:03 HLA-C*07:02
+20: HLA-A*02:01 HLA-A*25:01 HLA-B*35:01 HLA-B*18:01 HLA-C*12:03 HLA-C*04:01
+> 
+> #replace all spaces with ,
+> flurry3$hlas = str_replace_all(flurry3$hla, " ", ",")
+> #replace all * with nothing
+> flurry3$hlas = str_replace_all(flurry3$hlas, "\\*", "")
+> flurry3
+             sample_id
+ 1:   10-002-S1-TISSUE
+ 2:   11-002-S1-TISSUE
+ 3:       29/14-TISSUE
+ 4:      637/13-TISSUE
+ 5:     BCN-018-TISSUE
+ 6:      CPH-07-TISSUE
+ 7:      CPH-08-TISSUE
+ 8:      CPH-09-TISSUE
+ 9:   KESKIN_13240-002
+10:   KESKIN_13240-005
+11:   KESKIN_13240-006
+12:   KESKIN_13240-015
+13:   KESKIN_CP-594_V1
+14:   KESKIN_DFCI-5283
+15:   KESKIN_DFCI-5328
+16:   KESKIN_DFCI-5341
+17: KESKIN_H4198_BT187
+18: KESKIN_H4512_BT145
+19:  LEIDEN-004-TISSUE
+20:  LEIDEN-005-TISSUE
+                                                                        hla
+ 1: HLA-A*02:01 HLA-A*31:01 HLA-B*13:02 HLA-B*58:01 HLA-C*06:02 HLA-C*07:01
+ 2: HLA-A*03:01 HLA-A*24:02 HLA-B*35:03 HLA-B*44:02 HLA-C*12:03 HLA-C*12:03
+ 3: HLA-A*02:01 HLA-A*32:01 HLA-B*40:01 HLA-B*13:02 HLA-C*03:04 HLA-C*06:02
+ 4: HLA-A*01:01 HLA-A*24:02 HLA-B*51:01 HLA-B*08:01 HLA-C*07:01 HLA-C*01:02
+ 5: HLA-A*02:01 HLA-A*29:01 HLA-B*07:02 HLA-B*27:05 HLA-C*01:02 HLA-C*15:05
+ 6: HLA-A*02:01 HLA-A*02:01 HLA-B*35:01 HLA-B*27:05 HLA-C*02:02 HLA-C*04:01
+ 7: HLA-A*32:01 HLA-A*26:01 HLA-B*38:01 HLA-B*40:02 HLA-C*02:02 HLA-C*12:03
+ 8: HLA-A*02:01 HLA-A*32:01 HLA-B*27:05 HLA-B*44:02 HLA-C*05:01 HLA-C*02:02
+ 9: HLA-A*02:01 HLA-A*24:02 HLA-B*15:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:02
+10: HLA-A*01:01 HLA-A*01:01 HLA-B*38:01 HLA-B*56:01 HLA-C*01:02 HLA-C*06:02
+11: HLA-A*02:01 HLA-A*03:01 HLA-B*27:05 HLA-B*47:01 HLA-C*01:02 HLA-C*06:02
+12: HLA-A*02:01 HLA-A*02:02 HLA-B*13:02 HLA-B*40:02 HLA-C*02:02 HLA-C*06:02
+13: HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*44:02 HLA-C*05:01 HLA-C*12:03
+14: HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*08:01 HLA-C*07:01 HLA-C*07:02
+15: HLA-A*02:06 HLA-A*24:02 HLA-B*08:01 HLA-B*51:01 HLA-C*07:02 HLA-C*14:02
+16: HLA-A*03:01 HLA-A*31:01 HLA-B*14:02 HLA-B*35:02 HLA-C*04:01 HLA-C*08:02
+17: HLA-A*01:01 HLA-A*32:01 HLA-B*15:01 HLA-B*15:01 HLA-C*03:03 HLA-C*03:04
+18: HLA-A*01:01 HLA-A*32:01 HLA-B*13:02 HLA-B*40:02 HLA-C*02:02 HLA-C*06:02
+19: HLA-A*03:01 HLA-A*02:01 HLA-B*07:02 HLA-B*07:02 HLA-C*12:03 HLA-C*07:02
+20: HLA-A*02:01 HLA-A*25:01 HLA-B*35:01 HLA-B*18:01 HLA-C*12:03 HLA-C*04:01
+                                                                 hlas
+ 1: HLA-A02:01,HLA-A31:01,HLA-B13:02,HLA-B58:01,HLA-C06:02,HLA-C07:01
+ 2: HLA-A03:01,HLA-A24:02,HLA-B35:03,HLA-B44:02,HLA-C12:03,HLA-C12:03
+ 3: HLA-A02:01,HLA-A32:01,HLA-B40:01,HLA-B13:02,HLA-C03:04,HLA-C06:02
+ 4: HLA-A01:01,HLA-A24:02,HLA-B51:01,HLA-B08:01,HLA-C07:01,HLA-C01:02
+ 5: HLA-A02:01,HLA-A29:01,HLA-B07:02,HLA-B27:05,HLA-C01:02,HLA-C15:05
+ 6: HLA-A02:01,HLA-A02:01,HLA-B35:01,HLA-B27:05,HLA-C02:02,HLA-C04:01
+ 7: HLA-A32:01,HLA-A26:01,HLA-B38:01,HLA-B40:02,HLA-C02:02,HLA-C12:03
+ 8: HLA-A02:01,HLA-A32:01,HLA-B27:05,HLA-B44:02,HLA-C05:01,HLA-C02:02
+ 9: HLA-A02:01,HLA-A24:02,HLA-B15:01,HLA-B44:02,HLA-C05:01,HLA-C07:02
+10: HLA-A01:01,HLA-A01:01,HLA-B38:01,HLA-B56:01,HLA-C01:02,HLA-C06:02
+11: HLA-A02:01,HLA-A03:01,HLA-B27:05,HLA-B47:01,HLA-C01:02,HLA-C06:02
+12: HLA-A02:01,HLA-A02:02,HLA-B13:02,HLA-B40:02,HLA-C02:02,HLA-C06:02
+13: HLA-A02:01,HLA-A24:02,HLA-B35:03,HLA-B44:02,HLA-C05:01,HLA-C12:03
+14: HLA-A01:01,HLA-A02:01,HLA-B07:02,HLA-B08:01,HLA-C07:01,HLA-C07:02
+15: HLA-A02:06,HLA-A24:02,HLA-B08:01,HLA-B51:01,HLA-C07:02,HLA-C14:02
+16: HLA-A03:01,HLA-A31:01,HLA-B14:02,HLA-B35:02,HLA-C04:01,HLA-C08:02
+17: HLA-A01:01,HLA-A32:01,HLA-B15:01,HLA-B15:01,HLA-C03:03,HLA-C03:04
+18: HLA-A01:01,HLA-A32:01,HLA-B13:02,HLA-B40:02,HLA-C02:02,HLA-C06:02
+19: HLA-A03:01,HLA-A02:01,HLA-B07:02,HLA-B07:02,HLA-C12:03,HLA-C07:02
+20: HLA-A02:01,HLA-A25:01,HLA-B35:01,HLA-B18:01,HLA-C12:03,HLA-C04:01
+> 
+> #output allele list
+> fnm = sprintf("%s/allelelist_MHCflurry2.txt", dir1)
+> write.table(flurry3[,c("sample_id", "hlas")], fnm, sep=" ", quote = FALSE, 
++             row.names = FALSE, col.names = FALSE)
+> 
+> 
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0     dplyr_1.0.7       data.table_1.12.2
+
+loaded via a namespace (and not attached):
+ [1] fansi_0.4.0      utf8_1.1.4       crayon_1.3.4     R6_2.4.0        
+ [5] lifecycle_1.0.0  magrittr_1.5     pillar_1.6.1     stringi_1.4.3   
+ [9] rlang_0.4.11     vctrs_0.3.8      generics_0.1.0   ellipsis_0.3.2  
+[13] tools_3.6.1      glue_1.4.2       purrr_0.3.3      compiler_3.6.1  
+[17] pkgconfig_2.0.2  tidyselect_1.1.1 tibble_3.1.2    
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+148.329  11.160 171.537 

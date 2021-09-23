@@ -2,6 +2,10 @@
 # Comparison with training data used for PEPPRMINT 
 #   Note: PEPPRMINT training data is the human allele subset of the NetMHCpan-4.1 data
 # ------------------------------------------------------------------------------------
+library(data.table)
+library(stringr)
+library(stringi)
+library(dplyr)
 dir0 = "../../../data/MA_data/"
 fall = list.files(dir0, pattern="train_v4_el_multi_HLA_")
 fall
@@ -34,41 +38,43 @@ dim(net1sub)
 mhcflurry= fread("../../../data/test_data/MHCflurry2/MHCflurry2_test_el_multi_HLA.txt.gz")
 flurry_bind = mhcflurry[mhcflurry$binder==1,]
 dim(flurry_bind)
+head(flurry_bind)
 
-over = merge(flurry_bind, net1sub, by = c("peptide", "Peptide"))
+#peptides in MA test set and training 
+over = merge(flurry_bind, net1sub, by = c("peptide"))
 head(over)
 dim(over)
 
 # output set of peptides that are not in NetMHCpan-4.1 training data
-over_pep  = over$Peptide
-a = flurry_bind$Peptide %in% over_pep 
+over_pep  = over$peptide
+a = flurry_bind$peptide %in% over_pep 
 dis_pep = flurry_bind[!a,]
 
 dis_pep$sample = paste(dis_pep$cell_line,
                                  dis_pep$peptide, sep = ";")
 head(dis_pep)
 
-dis_pep$pep_line = paste(dis_pep$cell_line,
-                       dis_pep$Peptide, sep = ";")
-head(dis_pep)
+#dis_pep$pep_line = paste(dis_pep$cell_line,
+#                       dis_pep$Peptide, sep = ";")
+#head(dis_pep)
 
 
 
 #save 
 fnm = "../../../data/test_data/MHCflurry2/MHCflurry2_test_el_multi_HLA_no_overlap.txt"
-write.table(dis_pep[,c("sample", "binder", "pep_line")], fnm,
+write.table(dis_pep[,c("sample", "binder", "cell_line")], fnm,
             sep = "\t", quote = FALSE, row.names = FALSE, 
-            col.names = c("peptide", "y_true", "pep_line"))
+            col.names = c("peptide", "y_true", "cell_line"))
 
 
 
-over1 = merge(flurry_bind, net1, by = c("peptide", "Peptide"))
+over1 = merge(flurry_bind, net1, by = c("peptide"))
 head(over1)
 dim(over1)
 table(over1$cell_line.x)
 table(over1$cell_line.x, over1$cell_line.y)
 
-# conclusion: half of peptides are in test set (15150 of 27007), however they do not match 1-1 in cell-line
+# conclusion: duplicated peptides do not match 1-1 in cell-line
 
 sessionInfo()
 q(save="no")

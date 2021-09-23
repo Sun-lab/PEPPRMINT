@@ -1,0 +1,135 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> #---------------------------------------------------------------------------------
+> # Step 2.Create MHCflurry2.0 code for prediction of NetMHCpan-4.1
+> # Note: For MA HLA-I EL peptide data 
+> #---------------------------------------------------------------------------------
+> library(stringr)
+> cell_lines= c("10-002-S1-TISSUE", 
++               "11-002-S1-TISSUE",
++               "29/14-TISSUE" ,
++               "637/13-TISSUE",
++               "BCN-018-TISSUE" ,
++               "CPH-07-TISSUE" ,
++               "CPH-08-TISSUE" ,
++               "CPH-09-TISSUE" ,
++               "KESKIN_13240-002" ,
++               "KESKIN_13240-005" ,
++               "KESKIN_13240-006" ,
++               "KESKIN_13240-015" ,
++               "KESKIN_CP-594_V1" ,
++               "KESKIN_DFCI-5283" ,
++               "KESKIN_DFCI-5328" ,
++               "KESKIN_DFCI-5341" ,
++               "KESKIN_H4198_BT187" ,
++               "KESKIN_H4512_BT145" ,
++               "LEIDEN-004-TISSUE" ,
++               "LEIDEN-005-TISSUE" )
+> 
+> allelelist = read.table("../../../data/test_data/MHCflurry2/allelelist_MHCflurry2.txt")
+> allelelist  = as.data.frame(allelelist )
+> allelelist$cell_line = str_replace_all(allelelist$V1, "/", "_")
+> head(allelelist)
+                V1
+1 10-002-S1-TISSUE
+2 11-002-S1-TISSUE
+3     29/14-TISSUE
+4    637/13-TISSUE
+5   BCN-018-TISSUE
+6    CPH-07-TISSUE
+                                                                 V2
+1 HLA-A02:01,HLA-A31:01,HLA-B13:02,HLA-B58:01,HLA-C06:02,HLA-C07:01
+2 HLA-A03:01,HLA-A24:02,HLA-B35:03,HLA-B44:02,HLA-C12:03,HLA-C12:03
+3 HLA-A02:01,HLA-A32:01,HLA-B40:01,HLA-B13:02,HLA-C03:04,HLA-C06:02
+4 HLA-A01:01,HLA-A24:02,HLA-B51:01,HLA-B08:01,HLA-C07:01,HLA-C01:02
+5 HLA-A02:01,HLA-A29:01,HLA-B07:02,HLA-B27:05,HLA-C01:02,HLA-C15:05
+6 HLA-A02:01,HLA-A02:01,HLA-B35:01,HLA-B27:05,HLA-C02:02,HLA-C04:01
+         cell_line
+1 10-002-S1-TISSUE
+2 11-002-S1-TISSUE
+3     29_14-TISSUE
+4    637_13-TISSUE
+5   BCN-018-TISSUE
+6    CPH-07-TISSUE
+> 
+> #mixPep_100_bs_32_lr_0.001_e_50_layer_1_split0_Oct27.h5
+> 
+> cat("", file="../../../python/run_files/predict_Net4_1_run.sh")
+> 
+> for(c in cell_lines){
++   print(c)
++   hlas = allelelist$V2[which(allelelist$V1 == c )]
++   c_rpl = str_replace_all(c, "/", "_")
++   cmd0 = sprintf("../netMHCpan -p MHCflurry2_Net_%s.txt -xls -a", c_rpl) 
++ 
++   cmd = sprintf("%s %s -xlsfile _predictions/MHCflurry2_Net_%s_pred.xls ", cmd0, 
++                 toString(hlas), c_rpl)
++   cmd = sprintf("%s > _predictions/MHCflurry2_Net_%s_pred.txt \n ", cmd, c_rpl )
++       
++   cat(cmd, file="../../../python/run_files/predict_Net4_1_run.sh", append=TRUE)
++   
++ }
+[1] "10-002-S1-TISSUE"
+[1] "11-002-S1-TISSUE"
+[1] "29/14-TISSUE"
+[1] "637/13-TISSUE"
+[1] "BCN-018-TISSUE"
+[1] "CPH-07-TISSUE"
+[1] "CPH-08-TISSUE"
+[1] "CPH-09-TISSUE"
+[1] "KESKIN_13240-002"
+[1] "KESKIN_13240-005"
+[1] "KESKIN_13240-006"
+[1] "KESKIN_13240-015"
+[1] "KESKIN_CP-594_V1"
+[1] "KESKIN_DFCI-5283"
+[1] "KESKIN_DFCI-5328"
+[1] "KESKIN_DFCI-5341"
+[1] "KESKIN_H4198_BT187"
+[1] "KESKIN_H4512_BT145"
+[1] "LEIDEN-004-TISSUE"
+[1] "LEIDEN-005-TISSUE"
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1 magrittr_1.5   tools_3.6.1    stringi_1.4.3 
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+ 36.256   0.679  39.668 

@@ -1,0 +1,613 @@
+
+R version 3.6.1 (2019-07-05) -- "Action of the Toes"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ---------------------------------------------------------------------------
+> # Analyze PEPPRMINT prediction results 
+> # NetMHCpan-4.1 test data 
+> # ---------------------------------------------------------------------------
+> library(data.table)
+> library(PRROC)
+> library(stringr)
+> 
+> # ---------------------------------------------------------------------------
+> # Import data 
+> # ---------------------------------------------------------------------------
+> dir0 = "../../../results/test_data/NetMHCpan4_1/"
+> fall = list.files(dir0, 
++                   pattern = "test_pred_all.txt.gz")
+> fall
+ [1] "MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10_test_pred_all.txt.gz"
+ [2] "MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+ [3] "MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+ [4] "MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+ [5] "MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+ [6] "MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10_test_pred_all.txt.gz"
+ [7] "MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+ [8] "MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+ [9] "MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+[10] "MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+[11] "MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug2_iter10_test_pred_all.txt.gz"
+[12] "MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+[13] "MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+[14] "MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+[15] "MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+> 
+> # ---------------------------------------------------------------------------
+> #extract specific HLA
+> # ---------------------------------------------------------------------------
+> p =  fread(paste0(dir0, fall[1]))
+> 
+> hits_tab  = table( p$sample, p$y_true)
+> hits_tab
+            
+                 0     1
+  HLA-A02:02 73990  3063
+  HLA-A02:05 43120  2016
+  HLA-A02:06 52535  1975
+  HLA-A02:11 46410  2035
+  HLA-A11:01 31115  2309
+  HLA-A23:01 28770  1697
+  HLA-A25:01  6510   396
+  HLA-A26:01  7175   555
+  HLA-A30:01 14945   892
+  HLA-A30:02 30765  2415
+  HLA-A32:01 26600  1436
+  HLA-A33:01 41195  2138
+  HLA-A66:01 39550  1988
+  HLA-A68:01  5215   433
+  HLA-B07:02  2310   159
+  HLA-B08:01  3185   180
+  HLA-B14:02 20545  1056
+  HLA-B15:01 15855   769
+  HLA-B15:02 16065   637
+  HLA-B15:03 43015  1953
+  HLA-B15:17 44205  1712
+  HLA-B18:01 17500   784
+  HLA-B35:03  7945   330
+  HLA-B37:01 18795  1253
+  HLA-B38:01  8890   619
+  HLA-B40:01 17640  1268
+  HLA-B40:02 22435  1333
+  HLA-B45:01 17990   760
+  HLA-B46:01 13440   575
+  HLA-B53:01 44975  2016
+  HLA-B58:01 17080   866
+  HLA-C03:03 33565  2003
+  HLA-C05:01  6650   383
+  HLA-C07:02 14700   593
+  HLA-C08:02 30870  1546
+  HLA-C12:03 35175  1273
+> 
+> hits_tab1 = hits_tab[,2]
+> hits_tab1
+HLA-A02:02 HLA-A02:05 HLA-A02:06 HLA-A02:11 HLA-A11:01 HLA-A23:01 HLA-A25:01 
+      3063       2016       1975       2035       2309       1697        396 
+HLA-A26:01 HLA-A30:01 HLA-A30:02 HLA-A32:01 HLA-A33:01 HLA-A66:01 HLA-A68:01 
+       555        892       2415       1436       2138       1988        433 
+HLA-B07:02 HLA-B08:01 HLA-B14:02 HLA-B15:01 HLA-B15:02 HLA-B15:03 HLA-B15:17 
+       159        180       1056        769        637       1953       1712 
+HLA-B18:01 HLA-B35:03 HLA-B37:01 HLA-B38:01 HLA-B40:01 HLA-B40:02 HLA-B45:01 
+       784        330       1253        619       1268       1333        760 
+HLA-B46:01 HLA-B53:01 HLA-B58:01 HLA-C03:03 HLA-C05:01 HLA-C07:02 HLA-C08:02 
+       575       2016        866       2003        383        593       1546 
+HLA-C12:03 
+      1273 
+> 
+> 
+> # ---------------------------------------------------------------------------
+> #function for each iteration
+> # ---------------------------------------------------------------------------
+> SAel_all_max = NULL 
+> 
+> for(f in fall){
++   print("*-------------------------------------------------------------------------*")
++   it = str_split(f, "_")[[1]][19]
++   #print(it)
++   
++   p_pred = fread(paste0(dir0, f))
++   
++   print(dim(p_pred))
++   head(p_pred)
++   
++   #Remove duplicated peptide within the same HLA
++   p_pred$pep_line = paste(p_pred$sample, p_pred$peptide, sep= ";")
++   p_pred = p_pred[!duplicated(p_pred$pep_line)]
++   
++   # ---------------------------------------------------------------------------
++   # Overall split/config performance (validate python results)
++   # ---------------------------------------------------------------------------
++   # calculate ROC curve 
++   roc1 = roc.curve(scores.class0 = p_pred$y_pred, weights.class0 = p_pred$y_true, 
++                    curve=TRUE)
++   roc1
++   #plot(roc1)
++   
++   #pr1  = pr.curve(scores.class0 = d50$y_pred_mix, weights.class0 = d50$y_true,
++   #                curve=TRUE)
++   #pr1
++   #plot(pr1)
++   
++   # PPV
++   temp1 <- p_pred[with(p_pred,order(-y_pred)),]
++   hits = table(p_pred$y_true)[2][[1]]
++   temp2 = temp1[1:hits,]
++   dim(temp2)
++   
++   ppv = sum(temp2$y_true)/hits
++   ppv
++   
++   print(paste0("AUC, PPV for config: ", f))
++   print(paste("AUC =", round(roc1$auc,3)," PPV = ", round(ppv,3), sep = " "))
++   
++   # ---------------------------------------------------------------------------
++   # Combine all split/configs to one dataset
++   # ---------------------------------------------------------------------------
++   colnames(p_pred)[which(colnames(p_pred)=="y_pred")] = paste("y_pred_MA",
++                                                             str_split(f, "_")[[1]][2],
++                                                             str_split(f, "_")[[1]][19], 
++                                                             sep = "_")
++   colnames(p_pred)[which(colnames(p_pred)=="y_pred_pMHC")] = paste("y_pred_pMHC",
++                                                               str_split(f, "_")[[1]][2],
++                                                               str_split(f, "_")[[1]][19], 
++                                                               sep = "_")
++   
++   if(str_split(f, "_")[[1]][2]=="200" & str_split(f, "_")[[1]][19]=="split0"){
++     SAel_all_max = p_pred
++     print(dim(SAel_all_max))
++   }else{
++     SAel_all_max = merge(SAel_all_max, p_pred, 
++                     by = intersect(colnames(SAel_all_max), colnames(p_pred)))
++     print(dim(SAel_all_max))
++   }
++ }
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.912  PPV =  0.584"
+[1] 946008      7
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.914  PPV =  0.583"
+[1] 946008      9
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.901  PPV =  0.554"
+[1] 946008     11
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.906  PPV =  0.576"
+[1] 946008     13
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.903  PPV =  0.548"
+[1] 946008     15
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.913  PPV =  0.589"
+[1] 946008     17
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.912  PPV =  0.573"
+[1] 946008     19
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.899  PPV =  0.525"
+[1] 946008     21
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.9  PPV =  0.551"
+[1] 946008     23
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_400_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.896  PPV =  0.545"
+[1] 946008     25
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug2_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.915  PPV =  0.597"
+[1] 946008     27
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split1_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.906  PPV =  0.595"
+[1] 946008     29
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split2_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.897  PPV =  0.554"
+[1] 946008     31
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split3_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.904  PPV =  0.588"
+[1] 946008     33
+[1] "*-------------------------------------------------------------------------*"
+[1] 946141      6
+[1] "AUC, PPV for config: MA_800_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split4_Aug5_iter10_test_pred_all.txt.gz"
+[1] "AUC = 0.907  PPV =  0.582"
+[1] 946008     35
+> 
+> SAel_all_max1 = as.data.frame(SAel_all_max)
+> dim(SAel_all_max1)
+[1] 946008     35
+> head(SAel_all_max1)
+      sample        hla         peptide y_true                   pep_line
+1 HLA-A02:02 HLA-A02:02 AAAAXAAAAEXSEAE      0 HLA-A02:02;AAAAXAAAAEXSEAE
+2 HLA-A02:02 HLA-A02:02 AAAAXATAMVSVDPE      0 HLA-A02:02;AAAAXATAMVSVDPE
+3 HLA-A02:02 HLA-A02:02 AAAAXGFEKGIDRDT      0 HLA-A02:02;AAAAXGFEKGIDRDT
+4 HLA-A02:02 HLA-A02:02 AAAAXGFEKGXIDRD      0 HLA-A02:02;AAAAXGFEKGXIDRD
+5 HLA-A02:02 HLA-A02:02 AAAAXIDNMNESELF      0 HLA-A02:02;AAAAXIDNMNESELF
+6 HLA-A02:02 HLA-A02:02 AAAAXLVGKRXIAEK      0 HLA-A02:02;AAAAXLVGKRXIAEK
+  y_pred_pMHC_200_split0 y_pred_MA_200_split0 y_pred_pMHC_200_split1
+1              2.205e-06            2.456e-03              2.205e-06
+2              5.364e-07            4.342e-04              5.364e-07
+3              1.818e-06            3.806e-05              1.818e-06
+4              2.077e-05            9.716e-04              2.077e-05
+5              4.287e-04            1.225e-02              4.287e-04
+6              8.434e-03            1.267e-01              8.434e-03
+  y_pred_MA_200_split1 y_pred_pMHC_200_split2 y_pred_MA_200_split2
+1            0.0013760              2.205e-06            1.506e-01
+2            0.0001565              5.364e-07            9.342e-04
+3            0.0001093              1.818e-06            3.138e-05
+4            0.0004133              2.077e-05            9.715e-04
+5            0.0087620              4.287e-04            2.922e-02
+6            0.0211400              8.434e-03            1.568e-02
+  y_pred_pMHC_200_split3 y_pred_MA_200_split3 y_pred_pMHC_200_split4
+1              2.205e-06            0.0210900              2.205e-06
+2              5.364e-07            0.0006933              5.364e-07
+3              1.818e-06            0.0001151              1.818e-06
+4              2.077e-05            0.0007416              2.077e-05
+5              4.287e-04            0.0197300              4.287e-04
+6              8.434e-03            0.0788100              8.434e-03
+  y_pred_MA_200_split4 y_pred_pMHC_400_split0 y_pred_MA_400_split0
+1            0.0636000              2.205e-06            5.580e-03
+2            0.0004665              5.364e-07            1.577e-04
+3            0.0002263              1.818e-06            5.394e-06
+4            0.0012640              2.077e-05            2.974e-04
+5            0.0302200              4.287e-04            1.012e-03
+6            0.0651800              8.434e-03            4.202e-02
+  y_pred_pMHC_400_split1 y_pred_MA_400_split1 y_pred_pMHC_400_split2
+1              2.205e-06            0.0013940              2.205e-06
+2              5.364e-07            0.0001922              5.364e-07
+3              1.818e-06            0.0079380              1.818e-06
+4              2.077e-05            0.0013290              2.077e-05
+5              4.287e-04            0.0643100              4.287e-04
+6              8.434e-03            0.0409700              8.434e-03
+  y_pred_MA_400_split2 y_pred_pMHC_400_split3 y_pred_MA_400_split3
+1             0.093740              2.205e-06            0.0414900
+2             0.000878              5.364e-07            0.0002948
+3             0.002564              1.818e-06            0.0004061
+4             0.001691              2.077e-05            0.0037580
+5             0.019050              4.287e-04            0.0011900
+6             0.209200              8.434e-03            0.0253200
+  y_pred_pMHC_400_split4 y_pred_MA_400_split4 y_pred_pMHC_800_split0
+1              2.205e-06            3.399e-02              2.205e-06
+2              5.364e-07            2.967e-04              5.364e-07
+3              1.818e-06            7.942e-05              1.818e-06
+4              2.077e-05            5.705e-03              2.077e-05
+5              4.287e-04            1.177e-02              4.287e-04
+6              8.434e-03            7.248e-02              8.434e-03
+  y_pred_MA_800_split0 y_pred_pMHC_800_split1 y_pred_MA_800_split1
+1            3.151e-03              2.205e-06            4.652e-03
+2            3.030e-03              5.364e-07            6.664e-05
+3            1.967e-06              1.818e-06            1.570e-02
+4            1.110e-04              2.077e-05            2.012e-02
+5            4.484e-03              4.287e-04            3.304e-02
+6            1.102e-01              8.434e-03            1.247e-02
+  y_pred_pMHC_800_split2 y_pred_MA_800_split2 y_pred_pMHC_800_split3
+1              2.205e-06            6.541e-02              2.205e-06
+2              5.364e-07            2.945e-04              5.364e-07
+3              1.818e-06            1.478e-05              1.818e-06
+4              2.077e-05            2.315e-04              2.077e-05
+5              4.287e-04            3.692e-02              4.287e-04
+6              8.434e-03            3.233e-02              8.434e-03
+  y_pred_MA_800_split3 y_pred_pMHC_800_split4 y_pred_MA_800_split4
+1            0.0059410              2.205e-06            4.426e-03
+2            0.0103700              5.364e-07            4.098e-05
+3            0.0003452              1.818e-06            4.143e-06
+4            0.0018990              2.077e-05            1.344e-04
+5            0.0453600              4.287e-04            3.327e-03
+6            0.1165000              8.434e-03            2.366e-03
+> table(SAel_all_max1$y_true)
+
+     0      1 
+900592  45416 
+> 
+> # ---------------------------------------------------------------------------
+> # Aggregate
+> # ---------------------------------------------------------------------------
+> SAel_all_max1$agg_score = rowMeans(SAel_all_max1[, startsWith(colnames(SAel_all_max1), "y_pred_MA")])
+> length(SAel_all_max1$agg_score)
+[1] 946008
+> summary(SAel_all_max1$agg_score)
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+0.0000000 0.0000006 0.0001032 0.0512741 0.0118221 0.9976267 
+> 
+> SAel_all_max1$pep_length = nchar(str_replace_all(SAel_all_max1$peptide, "X",""))
+> head(SAel_all_max1)
+      sample        hla         peptide y_true                   pep_line
+1 HLA-A02:02 HLA-A02:02 AAAAXAAAAEXSEAE      0 HLA-A02:02;AAAAXAAAAEXSEAE
+2 HLA-A02:02 HLA-A02:02 AAAAXATAMVSVDPE      0 HLA-A02:02;AAAAXATAMVSVDPE
+3 HLA-A02:02 HLA-A02:02 AAAAXGFEKGIDRDT      0 HLA-A02:02;AAAAXGFEKGIDRDT
+4 HLA-A02:02 HLA-A02:02 AAAAXGFEKGXIDRD      0 HLA-A02:02;AAAAXGFEKGXIDRD
+5 HLA-A02:02 HLA-A02:02 AAAAXIDNMNESELF      0 HLA-A02:02;AAAAXIDNMNESELF
+6 HLA-A02:02 HLA-A02:02 AAAAXLVGKRXIAEK      0 HLA-A02:02;AAAAXLVGKRXIAEK
+  y_pred_pMHC_200_split0 y_pred_MA_200_split0 y_pred_pMHC_200_split1
+1              2.205e-06            2.456e-03              2.205e-06
+2              5.364e-07            4.342e-04              5.364e-07
+3              1.818e-06            3.806e-05              1.818e-06
+4              2.077e-05            9.716e-04              2.077e-05
+5              4.287e-04            1.225e-02              4.287e-04
+6              8.434e-03            1.267e-01              8.434e-03
+  y_pred_MA_200_split1 y_pred_pMHC_200_split2 y_pred_MA_200_split2
+1            0.0013760              2.205e-06            1.506e-01
+2            0.0001565              5.364e-07            9.342e-04
+3            0.0001093              1.818e-06            3.138e-05
+4            0.0004133              2.077e-05            9.715e-04
+5            0.0087620              4.287e-04            2.922e-02
+6            0.0211400              8.434e-03            1.568e-02
+  y_pred_pMHC_200_split3 y_pred_MA_200_split3 y_pred_pMHC_200_split4
+1              2.205e-06            0.0210900              2.205e-06
+2              5.364e-07            0.0006933              5.364e-07
+3              1.818e-06            0.0001151              1.818e-06
+4              2.077e-05            0.0007416              2.077e-05
+5              4.287e-04            0.0197300              4.287e-04
+6              8.434e-03            0.0788100              8.434e-03
+  y_pred_MA_200_split4 y_pred_pMHC_400_split0 y_pred_MA_400_split0
+1            0.0636000              2.205e-06            5.580e-03
+2            0.0004665              5.364e-07            1.577e-04
+3            0.0002263              1.818e-06            5.394e-06
+4            0.0012640              2.077e-05            2.974e-04
+5            0.0302200              4.287e-04            1.012e-03
+6            0.0651800              8.434e-03            4.202e-02
+  y_pred_pMHC_400_split1 y_pred_MA_400_split1 y_pred_pMHC_400_split2
+1              2.205e-06            0.0013940              2.205e-06
+2              5.364e-07            0.0001922              5.364e-07
+3              1.818e-06            0.0079380              1.818e-06
+4              2.077e-05            0.0013290              2.077e-05
+5              4.287e-04            0.0643100              4.287e-04
+6              8.434e-03            0.0409700              8.434e-03
+  y_pred_MA_400_split2 y_pred_pMHC_400_split3 y_pred_MA_400_split3
+1             0.093740              2.205e-06            0.0414900
+2             0.000878              5.364e-07            0.0002948
+3             0.002564              1.818e-06            0.0004061
+4             0.001691              2.077e-05            0.0037580
+5             0.019050              4.287e-04            0.0011900
+6             0.209200              8.434e-03            0.0253200
+  y_pred_pMHC_400_split4 y_pred_MA_400_split4 y_pred_pMHC_800_split0
+1              2.205e-06            3.399e-02              2.205e-06
+2              5.364e-07            2.967e-04              5.364e-07
+3              1.818e-06            7.942e-05              1.818e-06
+4              2.077e-05            5.705e-03              2.077e-05
+5              4.287e-04            1.177e-02              4.287e-04
+6              8.434e-03            7.248e-02              8.434e-03
+  y_pred_MA_800_split0 y_pred_pMHC_800_split1 y_pred_MA_800_split1
+1            3.151e-03              2.205e-06            4.652e-03
+2            3.030e-03              5.364e-07            6.664e-05
+3            1.967e-06              1.818e-06            1.570e-02
+4            1.110e-04              2.077e-05            2.012e-02
+5            4.484e-03              4.287e-04            3.304e-02
+6            1.102e-01              8.434e-03            1.247e-02
+  y_pred_pMHC_800_split2 y_pred_MA_800_split2 y_pred_pMHC_800_split3
+1              2.205e-06            6.541e-02              2.205e-06
+2              5.364e-07            2.945e-04              5.364e-07
+3              1.818e-06            1.478e-05              1.818e-06
+4              2.077e-05            2.315e-04              2.077e-05
+5              4.287e-04            3.692e-02              4.287e-04
+6              8.434e-03            3.233e-02              8.434e-03
+  y_pred_MA_800_split3 y_pred_pMHC_800_split4 y_pred_MA_800_split4   agg_score
+1            0.0059410              2.205e-06            4.426e-03 0.033259733
+2            0.0103700              5.364e-07            4.098e-05 0.001220415
+3            0.0003452              1.818e-06            4.143e-06 0.001838610
+4            0.0018990              2.077e-05            1.344e-04 0.002642553
+5            0.0453600              4.287e-04            3.327e-03 0.021376333
+6            0.1165000              8.434e-03            2.366e-03 0.064757733
+  pep_length
+1         13
+2         14
+3         14
+4         13
+5         14
+6         13
+> table(SAel_all_max1$hla, SAel_all_max1$y_true)
+            
+                 0     1
+  HLA-A02:02 73964  3063
+  HLA-A02:05 43118  2016
+  HLA-A02:06 52524  1975
+  HLA-A02:11 46398  2035
+  HLA-A11:01 31113  2309
+  HLA-A23:01 28765  1697
+  HLA-A25:01  6510   396
+  HLA-A26:01  7174   555
+  HLA-A30:01 14943   892
+  HLA-A30:02 30764  2415
+  HLA-A32:01 26597  1436
+  HLA-A33:01 41189  2138
+  HLA-A66:01 39544  1988
+  HLA-A68:01  5214   433
+  HLA-B07:02  2310   159
+  HLA-B08:01  3185   180
+  HLA-B14:02 20542  1056
+  HLA-B15:01 15855   769
+  HLA-B15:02 16065   637
+  HLA-B15:03 43009  1953
+  HLA-B15:17 44198  1712
+  HLA-B18:01 17498   784
+  HLA-B35:03  7945   330
+  HLA-B37:01 18794  1253
+  HLA-B38:01  8890   619
+  HLA-B40:01 17638  1268
+  HLA-B40:02 22433  1333
+  HLA-B45:01 17989   760
+  HLA-B46:01 13440   575
+  HLA-B53:01 44968  2016
+  HLA-B58:01 17078   866
+  HLA-C03:03 33559  2003
+  HLA-C05:01  6649   383
+  HLA-C07:02 14700   593
+  HLA-C08:02 30865  1546
+  HLA-C12:03 35165  1273
+> 
+> write.table(SAel_all_max1, paste0(dir0, "PEPPRMINT_prediction.txt"), 
++             col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+> #system(sprintf("gzip %s", paste0(dir0, "PEPPRMINT_prediction.txt")))
+> 
+> # ---------------------------------------------------------------------------
+> # Overall Performance for PEPPRMINT
+> # ---------------------------------------------------------------------------
+> #SAel_all_max1_sub = SAel_all_max1[which(SAel_all_max1$pep_length<=11),]
+> 
+> #ROC
+> SAel_roc1 = roc.curve(scores.class0 = SAel_all_max1$agg_score, 
++                  weights.class0 = SAel_all_max1$y_true, 
++                  curve=TRUE)
+> SAel_roc1
+
+  ROC curve
+
+    Area under curve:
+     0.9129552 
+
+    Curve for scores from  0  to  0.9976267 
+    ( can be plotted with plot(x) )
+
+> 
+> #PPV
+> temp1 <- SAel_all_max1[with(SAel_all_max1,order(-agg_score)),]
+> hits = table(SAel_all_max1$y_true)[2][[1]]
+> temp2 = temp1[1:hits,]
+> dim(temp2)
+[1] 45416    37
+> 
+> SAel_ppv = sum(temp2$y_true)/hits
+> SAel_ppv
+[1] 0.6011097
+> 
+> # ---------------------------------------------------------------------------
+> # PEPPRMINT performance by HLA
+> # ---------------------------------------------------------------------------
+> hla = unique(SAel_all_max1$hla)
+> 
+> hla_auc_results = NULL 
+> for( h in hla){
++   temp = SAel_all_max1[which(SAel_all_max1$hla == h),]
++   
++   #ROC
++   temp_roc1 = roc.curve(scores.class0 = temp$agg_score, 
++                        weights.class0 = temp$y_true, 
++                        curve=TRUE)
++   temp_roc1
++   
++   #PPV
++   temp1 <- temp[with(temp,order(-agg_score)),]
++   hits = table(temp$y_true)[2][[1]]
++   temp2 = temp1[1:hits,]
++   dim(temp2)
++   
++   temp_ppv = sum(temp2$y_true)/hits
++   temp_ppv
++   
++   hla_auc_results = rbind(hla_auc_results, 
++                          c(h, round(temp_roc1$auc,4), round(temp_ppv,4)))
++ }
+> 
+> hla_auc_results
+      [,1]         [,2]     [,3]    
+ [1,] "HLA-A02:02" "0.9766" "0.7656"
+ [2,] "HLA-A02:05" "0.9501" "0.6523"
+ [3,] "HLA-A02:06" "0.9782" "0.7175"
+ [4,] "HLA-A02:11" "0.9691" "0.7361"
+ [5,] "HLA-A11:01" "0.9277" "0.6423"
+ [6,] "HLA-A23:01" "0.9343" "0.7437"
+ [7,] "HLA-A25:01" "0.9425" "0.7374"
+ [8,] "HLA-A26:01" "0.9274" "0.6577"
+ [9,] "HLA-A30:01" "0.9453" "0.6155"
+[10,] "HLA-A30:02" "0.9638" "0.7822"
+[11,] "HLA-A32:01" "0.9689" "0.7827"
+[12,] "HLA-A33:01" "0.9675" "0.6698"
+[13,] "HLA-A66:01" "0.959"  "0.6217"
+[14,] "HLA-A68:01" "0.9094" "0.5797"
+[15,] "HLA-B07:02" "0.909"  "0.6604"
+[16,] "HLA-B08:01" "0.9375" "0.6167"
+[17,] "HLA-B14:02" "0.9582" "0.7301"
+[18,] "HLA-B15:01" "0.935"  "0.7529"
+[19,] "HLA-B15:02" "0.9562" "0.7786"
+[20,] "HLA-B15:03" "0.9769" "0.7629"
+[21,] "HLA-B15:17" "0.9726" "0.7261"
+[22,] "HLA-B18:01" "0.9647" "0.7602"
+[23,] "HLA-B35:03" "0.9531" "0.7303"
+[24,] "HLA-B37:01" "0.9477" "0.7031"
+[25,] "HLA-B38:01" "0.9441" "0.7706"
+[26,] "HLA-B40:01" "0.9816" "0.8651"
+[27,] "HLA-B40:02" "0.966"  "0.8425"
+[28,] "HLA-B45:01" "0.9676" "0.7895"
+[29,] "HLA-B46:01" "0.9476" "0.7304"
+[30,] "HLA-B53:01" "0.9802" "0.7778"
+[31,] "HLA-B58:01" "0.958"  "0.7875"
+[32,] "HLA-C03:03" "0.8122" "0.5172"
+[33,] "HLA-C05:01" "0.9231" "0.7546"
+[34,] "HLA-C07:02" "0.965"  "0.7251"
+[35,] "HLA-C08:02" "0.9695" "0.8435"
+[36,] "HLA-C12:03" "0.9682" "0.7062"
+> hla_auc_results = as.data.frame(hla_auc_results)
+> colnames(hla_auc_results) = c("hla", "AUC", "PPV")
+> hla_auc_results$hla = as.character(hla_auc_results$hla)
+> hla_auc_results$AUC = as.numeric(as.character(hla_auc_results$AUC))
+> hla_auc_results$PPV = as.numeric(as.character(hla_auc_results$PPV))
+> 
+> write.table(hla_auc_results, 
++             "../../../results/test_data/NetMHCpan4_1/by_hla_auc_PEPPRMINT.txt", 
++             quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+> 
+> 
+> sessionInfo()
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS High Sierra 10.13.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0     PRROC_1.3.1       data.table_1.12.2
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1    magrittr_1.5      tools_3.6.1       R.methodsS3_1.8.1
+[5] stringi_1.4.3     R.utils_2.10.1    R.oo_1.24.0      
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+154.637  10.114 137.519 

@@ -125,8 +125,8 @@ SAel_roc1 = roc.curve(scores.class0 = SAel_all_max1$agg_score,
 SAel_roc1
 
 #PPV
-temp1 <- SAel_all_max1_sub[with(SAel_all_max1_sub,order(-agg_score)),]
-hits = table(SAel_all_max1_sub$y_true)[2][[1]]
+temp1 <- SAel_all_max1[with(SAel_all_max1,order(-agg_score)),]
+hits = table(SAel_all_max1$y_true)[2][[1]]
 temp2 = temp1[1:hits,]
 dim(temp2)
 

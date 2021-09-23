@@ -86,6 +86,7 @@ def main(input_test_pred, input_alist,
 
     saved_args = locals()
     print("saved_args is", saved_args)
+    start = datetime.now()
 
     config = str(test_data_name)  + '_' +  str(m_tag) 
     model  = str(model) 
@@ -191,6 +192,8 @@ def main(input_test_pred, input_alist,
     test_encode      = np.asarray(test_encode)
     test_encode_hla  = np.asarray(test_encode_hla)
 
+    end_encode = datetime.now()
+
     # -----------------------------------------------------------------
     # load model for prediction
     # -----------------------------------------------------------------
@@ -258,6 +261,13 @@ def main(input_test_pred, input_alist,
         df_test.to_csv(os.path.join(results_dir, fnm), 
             sep='\t', index=False, float_format='%.3e')
         subprocess.run(["gzip", os.path.join(results_dir, fnm)])
+
+    end_pred = datetime.now()
+    print("Start training =", start)
+    print("Done encoding =", end_encode)
+    print("Done =", end_pred)
+
+    print('Finished all predictions. Bye!')
 
 # -----------------------------------------------------------------
 # parameters
