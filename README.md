@@ -29,7 +29,7 @@ Below is the sample python code to run prediction for one of the 15 models. Note
 python3 _prediction_PEPPRMINT.py --input-test-pred ../data/test_data/your_test_file.txt --test_data_name TESTNAME --model MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10.h5  --m_tag 200_split0 --results_dir ../results/PEPPRMINT --input_alist ../data/test_data/MHCflurry2/your_allelelist_file.txt --multi_allele --save_all_pred > logfiles/logfile_name.log 
 ```
 
-Repeat the above code, except change the "--model" and respective "--m_tag" for the following 15 model configurations where 'xxx' stands for `_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_'. Also set the m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
+Repeat the above code, except change the "--model"  for the following 15 model configurations where 'xxx' stands for `_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_'. Also set the m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
 
 * MA_200_xxx_split0_Aug5_iter10.h5
 * MA_400_xxx_split0_Aug5_iter10.h5 
