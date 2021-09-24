@@ -27,12 +27,12 @@ y_pred_mix	y_true	peptide	hla
 5.020e-02	1	10-002-S1-TISSUE;QLEDXXXEXXXALKY	HLA-B58:01
 7.419e-03	1	10-002-S1-TISSUE;QLEDXXXEXXXALKY	HLA-C06:02
 
-## Prediction files using a test datset in the Training 'PEPPERMINT.py'
+## Prediction files using a test dataset in the Training 'PEPPERMINT.py'
 If a test set is specified using "--input_test" in 'PEPPRMINT.py', then the resulting prediction file has 6 columns(sample,	hla,	peptide,	y_true,	y_pred_pMHC,	y_pred). Note dataset specified for "--input_test" is not used in any way during the training. 
 - "sample" is the sample name. This is the HLA for SA test data
 - "hla" is the HLA in the sample that the prediction is for 
 - "peptide" is the peptide that the prediction is for in the 15-length representation
-- "y_true" is the true binding status, or if unknown, what was given as input (we recommnded to set all to "0")
+- "y_true" is the true binding status, or if unknown, what was given as input (we recommended to set all to "0")
 - "y_pred_pMHC" is the prediction for the peptide and HLA using the SA trained model 
 - "y_pred" is the prediction for the peptide and HLA using the MA trained model (which is used for PEPPRMINT)
 

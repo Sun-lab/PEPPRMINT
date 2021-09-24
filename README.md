@@ -75,7 +75,7 @@ In the 'PEPPRMINT_pred_performance_template.R' code (located in R/Test/), the ma
 ## Supporting file format
 - The provided default file for the 34 position pseudo sequence is 'MHC_psuedo.txt' and additional HLA can be added. If want to use a different file, it must be delimited by ' ' and have no header. The two columns are the HLA name and the 34 pseudo sequence.  
 
-- The provided default file for that lists the possible HLA-I per sample is 'allelelist.txt'. New files should be '.txt' file delimited by ' ' and have no header. The two columns are the cell line name and possible HLA in the cell line. The list of HLA are separated by commas. The HLA-I should be 4 resolution and follow the the following nomenclature "HLA-\$##:##", where \$ = (A, B, or C) and # = integer from 0 to 9.
+- The provided default file for that lists the possible HLA-I per sample is 'allelelist.txt'. New files should be '.txt' file delimited by ' ' (space) and have no header. The two columns are the cell line name and possible HLA in the cell line. The list of HLA are separated by commas. The HLA-I should be 4 resolution and follow the the following nomenclature "HLA-\$##:##", where \$ = (A, B, or C) and # = integer from 0 to 9.
 
 
 # Training Multi-allele models
@@ -111,7 +111,7 @@ The parameters for the neural networks of PEPPRMINT are as follows.
 - n_iter : Maximim number of iterations of the EM algorithm. Default is 15. 
 - drop_rate : Drop out rat used in the NN layers. Default is 0.5
 - decr_iter : number of times the log likelihood can decrease before stopping the training early
-- use_class_weight: option to use binder class weights when fittin NN. Default is False
+- use_class_weight: option to use binder class weights when fitting NN. Default is False
 - converge_e : specified amount considered as converging of likelihood. Default is 
 - converge_itr : maximum number of iterations where log likelihood has not increased more than 'converge_e' before early stopping of training. 
 - save_model : option to save the final model to a '.h5' file. Use '--save_model' option if want to save model. 
@@ -120,7 +120,7 @@ The parameters for the neural networks of PEPPRMINT are as follows.
 
 # Training Single allele models (SA)
 
-The single allele (SA) method trained on HLA-I mass spectrum that is used to initialize our multi-allele method PEPPRMINT. The default model structure is one dense layer, though there is the option to train a two-layer model. The model is trained with a binary crossentropy loss function and ADAM optimizer. Below are the details to train these SA models. 
+The single allele (SA) method trained on HLA-I mass spectrum that is used to initialize our multi-allele method PEPPRMINT. The default model structure is one dense layer, though there is the option to train a two-layer model. The model is trained with a binary cross-entropy loss function and ADAM optimizer. Below are the details to train these SA models. 
 
 ## Parameter specification
 The parameters include the following and are defined the same way as the MA methods PEPPRMINT unless otherwise noted.
@@ -129,7 +129,7 @@ The parameters include the following and are defined the same way as the MA meth
 - testing_frac (-T): fraction of training dataset that will be used as a validation test set. Is not needed if specified 'input_test'. Default is 0.2. 
 
 ## Data format
-- HLA-I input data files for training and testing: '.txt' files delimeted by '\t' and have no header. The columns of the datasets are peptide sequence in the 15-length representation, binder indicator (=1 if binder, 0 if non-binder), and specific HLA that the peptide binds to. The HLA should be 4 resolution and follow the the following nomenclature "HLA-\$##:##", where \$ = (A, B, or C) and # = integer from 0 to 9. See 'pMHCpan_sample_data.txt' in the 'data' folder for a example of the data format. 
+- HLA-I input data files for training and testing: '.txt' files delimited by '\t' and have no header. The columns of the datasets are peptide sequence in the 15-length representation, binder indicator (=1 if binder, 0 if non-binder), and specific HLA that the peptide binds to. The HLA should be 4 resolution and follow the the following nomenclature "HLA-\$##:##", where \$ = (A, B, or C) and # = integer from 0 to 9. See 'pMHCpan_sample_data.txt' in the 'data' folder for a example of the data format. 
 
 - Format of HLA pseudo-sequence or cell line list files: please refer to the 'Data Format' section under the multi-allele training section above. 
 
