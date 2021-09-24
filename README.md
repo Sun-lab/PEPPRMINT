@@ -31,21 +31,21 @@ python3 _prediction_PEPPRMINT.py --input-test-pred ../data/test_data/your_test_f
 
 Repeat the above code, except change the "--model" and respective "--m_tag" for the following 15 model configurations where 'xxx' stands for `_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_'. Also set the m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
 
-MA_200_xxx_split0_Aug5_iter10.h5
-MA_400_xxx_split0_Aug5_iter10.h5 
-MA_800_xxx_split0_Aug5_iter10.h5  
-MA_200_xxx_split1_Aug5_iter10.h5 
-MA_400_xxx_split1_Aug5_iter10.h5  
-MA_800_xxx_split1_Aug5_iter10.h5  
-MA_200_xxx_split2_Aug5_iter10.h5  
-MA_400_xxx_split2_Aug5_iter10.h5 
-MA_800_xxx_split2_Aug5_iter10.h5  
-MA_200_xxx_split3_Aug5_iter10.h5 
-MA_400_xxx_split3_Aug5_iter10.h5  
-MA_800_xxx_split3_Aug5_iter10.h5 
-MA_200_xxx_split4_Aug5_iter10.h5 
-MA_400_xxx_split4_Aug5_iter10.h5 
-MA_800_xxx_split4_Aug5_iter10.h5
+* MA_200_xxx_split0_Aug5_iter10.h5
+* MA_400_xxx_split0_Aug5_iter10.h5 
+* MA_800_xxx_split0_Aug5_iter10.h5  
+* MA_200_xxx_split1_Aug5_iter10.h5 
+* MA_400_xxx_split1_Aug5_iter10.h5  
+* MA_800_xxx_split1_Aug5_iter10.h5  
+* MA_200_xxx_split2_Aug5_iter10.h5  
+* MA_400_xxx_split2_Aug5_iter10.h5 
+* MA_800_xxx_split2_Aug5_iter10.h5  
+* MA_200_xxx_split3_Aug5_iter10.h5 
+* MA_400_xxx_split3_Aug5_iter10.h5  
+* MA_800_xxx_split3_Aug5_iter10.h5 
+* MA_200_xxx_split4_Aug5_iter10.h5 
+* MA_400_xxx_split4_Aug5_iter10.h5 
+* MA_800_xxx_split4_Aug5_iter10.h5
 
 The output will be a '*_test_pred_all.txt.gz' file with a prediction for each each peptide and cell line (i.e. across all possible HLA in the cell line for HLA-I). The columns of the output file is as follows: 
 
