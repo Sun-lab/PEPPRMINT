@@ -351,7 +351,7 @@ def main(input_train, input_valid, input_test, input_alist,
 
     df_test  = testX.iloc[test_idx,[2,0,1]]
     # ad-hoc here to change the header of testing data from HLA to sample
-    df_test.rename(columns={"HLA": "sample", "binder": "y_true"}, inplace=True)
+    df_test.rename(columns={"cell_line": "sample", "binder": "y_true"}, inplace=True)
     #df_test.rename(columns={"cell_line": "sample", "binder": "y_true"}, inplace=True)
     df_test.insert(loc=1, column='hla', value=test_hla)
     df_test.reset_index(drop=True, inplace=True)
