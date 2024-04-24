@@ -22,36 +22,39 @@ The code to make prediction is ```_prediction_PEPPRMINT.py```, which reads input
 
 See the files in folder 'data/_toy_data' folder some examples of input files. Another example of input file for neoantigen analysis can be found in folder 'data/Riaz_2017/riaz_peptide_mut.txt'
 
-Below is the sample python code to run prediction for one of the 15 models. Note "TESTNAME" is a one word indicator to name your testing set that does not include any "_".  
+Below is the sample python code to run prediction for one of the 15 models. 
 
 ```{python}
-python3 _prediction_PEPPRMINT.py --input_test_pred ../data/test_data/your_test_file.txt --test_data_name TESTNAME --model MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10.h5  --m_tag 200_split0 --results_dir ../results/PEPPRMINT --input_alist ../data/test_data/MHCflurry2/your_allelelist_file.txt --multi_allele --save_all_pred > logfiles/logfile_name.log 
+python _prediction_PEPPRMINT.py \
+--input_peptides ~/research/data/TCR/TCGA/_results/step8a_TCGA_peptides_mut.tsv \
+--input_alist ~/research/data/TCR/TCGA/_results/step8a_TCGA_hla_list.tsv \
+--data_label TCGA \
+--model ../results/PEPPRMINT/MA_200_split0.h5 \
+--model_tag 200_split0 \
+--results_dir ~/research/data/TCR/TCGA/_results/PEPPRMINT \
+--neoantigen \
+> ~/research/data/TCR/TCGA/_results/PEPPRMINT/TCGA_MA_200_split0.log 
 ```
 
-Repeat the above code, except change the "--model"  for the following 15 model configurations where 'xxx' stands for `_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_'. Also set the m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
+Repeat the above code, except change the "--model"  for the following 15 model configurations and set m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
 
-* MA_200_xxx_split0_Aug5_iter10.h5
-* MA_400_xxx_split0_Aug5_iter10.h5 
-* MA_800_xxx_split0_Aug5_iter10.h5  
-* MA_200_xxx_split1_Aug5_iter10.h5 
-* MA_400_xxx_split1_Aug5_iter10.h5  
-* MA_800_xxx_split1_Aug5_iter10.h5  
-* MA_200_xxx_split2_Aug5_iter10.h5  
-* MA_400_xxx_split2_Aug5_iter10.h5 
-* MA_800_xxx_split2_Aug5_iter10.h5  
-* MA_200_xxx_split3_Aug5_iter10.h5 
-* MA_400_xxx_split3_Aug5_iter10.h5  
-* MA_800_xxx_split3_Aug5_iter10.h5 
-* MA_200_xxx_split4_Aug5_iter10.h5 
-* MA_400_xxx_split4_Aug5_iter10.h5 
-* MA_800_xxx_split4_Aug5_iter10.h5
+* MA_200_split0.h5
+* MA_400_split0.h5 
+* MA_800_split0.h5  
+* MA_200_split1.h5 
+* MA_400_split1.h5  
+* MA_800_split1.h5  
+* MA_200_split2.h5  
+* MA_400_split2.h5 
+* MA_800_split2.h5  
+* MA_200_split3.h5 
+* MA_400_split3.h5  
+* MA_800_split3.h5 
+* MA_200_split4.h5 
+* MA_400_split4.h5 
+* MA_800_split4.h5
 
-The output will be a '*_test_pred_all.txt.gz' file with a prediction for each each peptide and cell line (i.e. across all possible HLA in the cell line for HLA-I). The columns of the output file is as follows: 
-
-- peptide : Name of cell line and the peptide 
-- hla : HLA in cell line 
-- y_true : true binding of the peptide. (Note, if do not have the true binding status, y_true = 0 for all peptides)
-- y_pred_mix : prediction of binding probability for the peptide and HLA
+For neonatigen option (when using ```--neoantigen``` in the code), the output will be a '*_test_pred.txt' file with a prediction for each each peptide and each sample (after taking maximum across all HLAs of the sample). 
 
 ## Step 2. Aggregate Predictions for PEPPRMINT
 
