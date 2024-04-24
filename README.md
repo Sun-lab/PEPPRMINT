@@ -1,6 +1,6 @@
 # PEPPRMINT: PEPtide PResentation using a MIxture model and Neural neTwork
 
-PEPPRMINT was designed to exploit the newly available mass spectrometry data as training data to predict peptide presentation. PEPPRMINT uses a mixture model to define an explicit objective function and a neural network to quantify the density function for each mixture component. Other than NetMHCpan-4.1, it is the only neural network method that uses multi-allele mass spectrum data for training. 
+PEPPRMINT was designed to exploit the newly available mass spectrometry data as training data to predict peptide presentation by HLAs. In multi-allele mass spectrum data, the peptides can be presented by any one of multiple HLA alleles. PEPPRMINT models these peptides by mixture model where the mixture componenets are neural networks with the same architecure but different inputs. Other than NetMHCpan-4.1, it is the only neural network method that uses multi-allele mass spectrum data for training. 
 
 Next we describe two situations to use our software. One is to make prediction using our pre-trained neural networks. The other is to train the neural networks using another training data.
 
@@ -10,49 +10,51 @@ The final prediction score for PEPPRMINT is an average of 15 models (3 neural ne
 
 ## Step 1. Run prediction
 
-The code to make prediction is ```_prediction_PEPPRMINT.py```, which reads input from a tab-delimitated text file with at least three columns. The first row of this file will be treated as headers, though the code identifies each column by its order rather than the header. The first three columns should be prepared as follows. 
+The code to make prediction is ```_prediction_PEPPRMINT.py```, which reads input from a tab-delimitated text file with at least three columns. The first row of this file is treated as headers, though the code identifies each column by its order rather than the header. The first three columns should be prepared as follows. 
 
-- The first column is the peptide sequence in the format of 15 AA representation. 
+- The first column is the peptide sequence of 15 amino acids long. 
 
-- The second column is either binding indicator of label of the corresponding somatic mutation. 
-	- When evaluating the performance of PEEPRMINT using a dataset with binder status, it is binder indicator =1 if binder, 0 if non-binder). 
-	- When you want to obtain the score for all input peptides without knowing the binder status, the second column can be set to be 0 for all entries. 
+- The second column is either binding indicator or label of the corresponding somatic mutation. 
+	- When evaluating the performance of PEEPRMINT using a dataset with binder status, it is 1 if binder, and 0 if non-binder. If the binder information is unknown, the second column can be set to be 0 for all entries. 
 	- When using the code to prioritize neoantigens for cancer vaccine, each somatic mutation corresponds to multiple peptides, and we take the maximum across the peptides for each somatic mutation. In such case, the second column is a label for the somatic mutation. In this  case, the option ```--neoantigen``` should be used when running the code. 
 	
 - The third column is the corresponding sample of the peptide. The name of the sample will be used to identify the corresponding HLA alleles from another file specified by the ```input_alist``` parameter. 
 
 See the files in folder 'data/_toy_data' folder some examples of input files. Another example of input file for neoantigen analysis can be found in folder 'data/Riaz_2017/riaz_peptide_mut.txt'
 
-Below is the sample python code to run prediction for one of the 15 models. Note "TESTNAME" is a one word indicator to name your testing set that does not include any "_".  
+Below is the sample python code to run prediction for one of the 15 models. 
 
 ```{python}
-python3 _prediction_PEPPRMINT.py --input-test-pred ../data/test_data/your_test_file.txt --test_data_name TESTNAME --model MA_200_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_split0_Aug5_iter10.h5  --m_tag 200_split0 --results_dir ../results/PEPPRMINT --input_alist ../data/test_data/MHCflurry2/your_allelelist_file.txt --multi_allele --save_all_pred > logfiles/logfile_name.log 
+python _prediction_PEPPRMINT.py \
+--input_peptides ~/research/data/TCR/TCGA/_results/step8a_TCGA_peptides_mut.tsv \
+--input_alist ~/research/data/TCR/TCGA/_results/step8a_TCGA_hla_list.tsv \
+--data_label TCGA \
+--model ../results/PEPPRMINT/MA_200_split0.h5 \
+--model_tag 200_split0 \
+--results_dir ~/research/data/TCR/TCGA/_results/PEPPRMINT \
+--neoantigen \
+> ~/research/data/TCR/TCGA/_results/PEPPRMINT/TCGA_MA_200_split0.log 
 ```
 
-Repeat the above code, except change the "--model"  for the following 15 model configurations where 'xxx' stands for `_bs_32_lr_0.001_e_10_layer_1_dropout_0.5_new_pi_weight_0.5_decriter_2_'. Also set the m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
+Repeat the above code, except change the "--model"  for the following 15 model configurations and set m_tag according to the input model. For example, m_tag 200_split0 corresponds to the model with 200 nodes in the hidden layer and trained on the split 0 of the training data. 
 
-* MA_200_xxx_split0_Aug5_iter10.h5
-* MA_400_xxx_split0_Aug5_iter10.h5 
-* MA_800_xxx_split0_Aug5_iter10.h5  
-* MA_200_xxx_split1_Aug5_iter10.h5 
-* MA_400_xxx_split1_Aug5_iter10.h5  
-* MA_800_xxx_split1_Aug5_iter10.h5  
-* MA_200_xxx_split2_Aug5_iter10.h5  
-* MA_400_xxx_split2_Aug5_iter10.h5 
-* MA_800_xxx_split2_Aug5_iter10.h5  
-* MA_200_xxx_split3_Aug5_iter10.h5 
-* MA_400_xxx_split3_Aug5_iter10.h5  
-* MA_800_xxx_split3_Aug5_iter10.h5 
-* MA_200_xxx_split4_Aug5_iter10.h5 
-* MA_400_xxx_split4_Aug5_iter10.h5 
-* MA_800_xxx_split4_Aug5_iter10.h5
+* MA_200_split0.h5
+* MA_400_split0.h5 
+* MA_800_split0.h5  
+* MA_200_split1.h5 
+* MA_400_split1.h5  
+* MA_800_split1.h5  
+* MA_200_split2.h5  
+* MA_400_split2.h5 
+* MA_800_split2.h5  
+* MA_200_split3.h5 
+* MA_400_split3.h5  
+* MA_800_split3.h5 
+* MA_200_split4.h5 
+* MA_400_split4.h5 
+* MA_800_split4.h5
 
-The output will be a '*_test_pred_all.txt.gz' file with a prediction for each each peptide and cell line (i.e. across all possible HLA in the cell line for HLA-I). The columns of the output file is as follows: 
-
-- peptide : Name of cell line and the peptide 
-- hla : HLA in cell line 
-- y_true : true binding of the peptide. (Note, if do not have the true binding status, y_true = 0 for all peptides)
-- y_pred_mix : prediction of binding probability for the peptide and HLA
+For neonatigen option (when using ```--neoantigen``` in the code), the output will be a '*_test_pred.txt' file with a prediction for each each peptide and each sample (after taking maximum across all HLAs of the sample). 
 
 ## Step 2. Aggregate Predictions for PEPPRMINT
 
