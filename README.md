@@ -10,14 +10,16 @@ The final prediction score for PEPPRMINT is an average of 15 models (3 neural ne
 
 ## Step 1. Run prediction
 
-The code to make prediction is ```_prediction_PEPPRMINT.py```, which reads input from a tab-delimitated text file with at least three columns. The first row of this file is treated as headers, though the code identifies each column by its order rather than the header. The first three columns should be prepared as follows. 
+The code to make prediction is ```_prediction_PEPPRMINT.py```, which reads input from a tab(or space)-delimitated text file with at least three columns with column names being
 
-- The first column is the peptide sequence of 15 amino acids long. 
+- ['peptide', 'y_true', 'sample'] for evaluation of prediction given the binder status (when ```neoantigen``` is False), where ```y_true```` is the binding status indicator: 1 if binder, and 0 otherwise. 
+  
+- ['peptide', 'key', 'sample'] for evaluation of neoantign (when ```neoantigen``` is True), where ```key``` is the somatic mutation id. 
 
-- The second column is either binding indicator or label of the corresponding somatic mutation. 
-	- When evaluating the performance of PEEPRMINT using a dataset with binder status, it is 1 if binder, and 0 if non-binder. If the binder information is unknown, the second column can be set to be 0 for all entries. 
-	- When using the code to prioritize neoantigens for cancer vaccine, each somatic mutation corresponds to multiple peptides, and we take the maximum across the peptides for each somatic mutation. In such case, the second column is a label for the somatic mutation. In this  case, the option ```--neoantigen``` should be used when running the code. 
-	
+When ```neoantigen``` is True (the option ```--neoantigen``` should be used), each somatic mutation may have multiple pepties, and we calculat the maximum prediction secore for each somatic mutatoin. 
+
+- The first column ```peptide``` is the peptide sequence of 15 amino acids long. 
+
 - The third column is the corresponding sample of the peptide. The name of the sample will be used to identify the corresponding HLA alleles from another file specified by the ```input_alist``` parameter. 
 
 See the files in folder 'data/_toy_data' folder some examples of input files. Another example of input file for neoantigen analysis can be found in folder 'data/Riaz_2017/riaz_peptide_mut.txt'
