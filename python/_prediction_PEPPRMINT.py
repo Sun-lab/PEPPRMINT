@@ -1,11 +1,4 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-
-import warnings
-
-warnings.filterwarnings(action="ignore", category=DeprecationWarning)
-warnings.filterwarnings(action="ignore", category=FutureWarning)
-warnings.filterwarnings(action="ignore", category=PendingDeprecationWarning)
-
 import os
 import subprocess
 import argparse
@@ -17,9 +10,12 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import average_precision_score
 
 from datetime import datetime
-
 import matplotlib
+import warnings
 
+warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+warnings.filterwarnings(action="ignore", category=FutureWarning)
+warnings.filterwarnings(action="ignore", category=PendingDeprecationWarning)
 matplotlib.use("Agg")  # use a non-interactive backend
 # matplotlib.use('macosx')
 
@@ -58,7 +54,6 @@ def encode_peptide(peptide):
 # data_label      = "PEPPRMINT_Riaz_2017"
 # model           = "MA_200_split0.h5"
 # model_tag       = "200_split0"
-# fig_dir         = "../figures/PEPPRMINT"
 # results_dir     = "../results/Riaz_2017"
 # save_all_pred   = True
 # input_pep_hla   = False
@@ -117,7 +112,7 @@ def main(input_peptides, input_alist, input_mhc_seq,
     print(hla_seq.iloc[0:3, :])
 
     # -----------------------------------------------------------------
-    # encode all the HLA seqeunces
+    # encode all the HLA sequences
     # -----------------------------------------------------------------
 
     hla_encoding = {}
@@ -160,17 +155,23 @@ def main(input_peptides, input_alist, input_mhc_seq,
             else:
                 print(f"{hla1} is not a key in the HLA dictionary.")
 
-    df_test = test_predX.loc[test_idx, :]
+    df_test = test_predX.loc[test_idx, :].copy()
 
-    if neoantigen:
-        df_test.columns.values[:3] = np.array(['peptide', 'key', 'sample'], dtype=object)
-    else:
-        df_test.columns.values[:3] = np.array(['peptide', 'y_true', 'sample'], dtype=object)
+    # this part can lead to Segmentation fault in some environment.
+    # we should instead make sure the file header is correct in the input file.
+    # print("update column names")
+    # if neoantigen:
+    #     df_test.columns.values[:3] = np.array(['peptide', 'key', 'sample'], dtype=object)
+    # else:
+    #     df_test.columns.values[:3] = np.array(['peptide', 'y_true', 'sample'], dtype=object)
+    # print("done with updating column names")
 
-    test_encode = np.asarray(test_encode)
-    test_encode_hla = np.asarray(test_encode_hla)
+    test_encode = np.asarray(test_encode, dtype='float32')
+    test_encode_hla = np.asarray(test_encode_hla, dtype='float32')
 
     end_encode = datetime.now()
+
+    df_test['hla'] = test_hla
 
     # -----------------------------------------------------------------
     # load model for prediction
@@ -178,22 +179,35 @@ def main(input_peptides, input_alist, input_mhc_seq,
 
     model1 = tf.keras.models.load_model(model)
 
+    model1.summary()
+
+    # Get input shape, dtype, and other details directly
+    input_layer = model1.input
+
+    # Print input details
+    print("Input layer details:")
+    print("Input Shape:", input_layer.shape)
+    print("Data Type:", input_layer.dtype)
+
     # -----------------------------------------------------------------
     # Predict for weighted and unweighted models
     # -----------------------------------------------------------------
     if input_pep_hla:
-        test_pred = model1.predict([test_encode, test_encode_hla])
+        combined_array = np.hstack((test_encode, test_encode_hla))
+        test_pred = model1.predict(combined_array)
     else:
         test_pred = model1.predict(test_encode)
 
-    df_test['y_pred'] = test_pred
+    print("done with prediction")
+
+    df_test['y_pred'] = pd.Series(test_pred.flatten())
 
     # -----------------------------------------------------------------
     # Take maximum for peptide/sample and calculate classification
     # -----------------------------------------------------------------
 
-    print("first 10 rows of prediction results")
-    print(df_test.iloc[0:10, ])
+    print("first 2 rows of prediction results")
+    print(df_test.iloc[0:2, ])
 
     if encode9AA:
         var2grp = ['peptide_orig', 'y_true', 'sample']
@@ -201,6 +215,12 @@ def main(input_peptides, input_alist, input_mhc_seq,
         var2grp = ['key', 'sample']
     else:
         var2grp = ['peptide', 'y_true', 'sample']
+
+    all_columns_present = all(column in df_test.columns for column in var2grp)
+    if not all_columns_present:
+        print("var2grp:")
+        print(var2grp)
+        raise ValueError("not all the variables in var2grp are column names")
 
     df_max = df_test.groupby(var2grp, as_index=False)['y_pred'].max()
 
@@ -241,6 +261,7 @@ def main(input_peptides, input_alist, input_mhc_seq,
         subprocess.run(["gzip", os.path.join(results_dir, fnm)])
 
     end_pred = datetime.now()
+
     print("Start training =", start)
     print("Done encoding =", end_encode)
     print("Done =", end_pred)
