@@ -144,7 +144,7 @@ def main(input_peptides, input_alist, input_mhc_seq,
 
         for hla1 in hla_allele:
             if hla1 in hla_encoding:
-                print(f"{hla1} is a key in the HLA dictionary.")
+                # print(f"{hla1} is a key in the HLA dictionary.")
                 hla_encode = hla_encoding[hla1]
                 test_idx.append(i)
                 test_hla.append(hla1)
@@ -208,8 +208,8 @@ def main(input_peptides, input_alist, input_mhc_seq,
     # Take maximum for peptide/sample and calculate classification
     # -----------------------------------------------------------------
 
-    print("first 2 rows of prediction results")
-    print(df_test.iloc[0:2, ])
+    print("first 10 rows of prediction results")
+    print(df_test.iloc[0:10, ])
 
     if encode9AA:
         var2grp = ['peptide_orig', 'y_true', 'sample']
