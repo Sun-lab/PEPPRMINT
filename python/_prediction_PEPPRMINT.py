@@ -144,6 +144,7 @@ def main(input_peptides, input_alist, input_mhc_seq,
 
         for hla1 in hla_allele:
             if hla1 in hla_encoding:
+                print(f"{hla1} is a key in the HLA dictionary.")
                 hla_encode = hla_encoding[hla1]
                 test_idx.append(i)
                 test_hla.append(hla1)
@@ -155,7 +156,8 @@ def main(input_peptides, input_alist, input_mhc_seq,
             else:
                 print(f"{hla1} is not a key in the HLA dictionary.")
 
-    df_test = test_predX.loc[test_idx, :].copy()
+
+    df_test = test_predX.loc[test_idx, :]
 
     # this part can lead to Segmentation fault in some environment.
     # we should instead make sure the file header is correct in the input file.
@@ -200,7 +202,7 @@ def main(input_peptides, input_alist, input_mhc_seq,
 
     print("done with prediction")
 
-    df_test['y_pred'] = pd.Series(test_pred.flatten())
+    df_test['y_pred'] = test_pred
 
     # -----------------------------------------------------------------
     # Take maximum for peptide/sample and calculate classification
